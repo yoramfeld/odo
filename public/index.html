@@ -39,13 +39,6 @@
       transition: max-height 0.2s ease;
     }
     #preview.compact { max-height: 27dvh; }
-    #viewfinder {
-      width: 100%;
-      max-height: 55dvh;
-      object-fit: cover;
-      display: none;
-      background: #000;
-    }
     #placeholder {
       width: 100%;
       height: 42dvh;
@@ -59,25 +52,6 @@
     }
     #placeholder svg { width: 52px; height: 52px; opacity: 0.35; }
     #placeholder span { font-size: 0.9rem; }
-
-    /* Shutter button overlay on viewfinder */
-    #shutter-wrap {
-      display: none;
-      position: absolute;
-      bottom: 16px;
-      left: 0; right: 0;
-      justify-content: center;
-      z-index: 5;
-    }
-    #shutter-btn {
-      width: 64px; height: 64px;
-      border-radius: 50%;
-      background: #fff;
-      border: 4px solid #94a3b8;
-      cursor: pointer;
-      transition: transform 0.1s;
-    }
-    #shutter-btn:active { transform: scale(0.92); }
 
     /* ── Controls ── */
     #controls {
@@ -152,17 +126,18 @@
       display: flex;
       align-items: baseline;
       gap: 8px;
+      margin-bottom: 0;
     }
     #km-input {
-      font-size: 3.2rem;
+      font-size: 1.6rem;
       font-weight: 800;
       color: #f1f5f9;
       background: transparent;
       border: none;
       border-bottom: 2px solid #334155;
       width: 100%;
-      padding: 0 0 4px;
-      letter-spacing: -2px;
+      padding: 0;
+      letter-spacing: -1px;
       -moz-appearance: textfield;
       transition: border-color 0.2s;
     }
@@ -223,7 +198,6 @@
 <!-- Photo / viewfinder -->
 <div id="photo-wrap">
   <input type="file" id="file-input" accept="image/*" />
-  <video id="viewfinder" autoplay playsinline muted></video>
   <img id="preview" alt="" />
   <div id="placeholder">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -239,14 +213,12 @@
     </svg>
     <span>Tap to upload · or use Camera button</span>
   </div>
-  <div id="shutter-wrap">
-    <button id="shutter-btn" title="Take photo"></button>
-  </div>
 </div>
 
 <!-- Controls -->
 <div id="controls">
   <button class="btn btn-ghost" id="camera-btn">📷 Camera</button>
+  <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" />
   <span id="reading-status"><span class="spinner"></span>Reading…</span>
 </div>
 
@@ -275,9 +247,7 @@
 <script>
   const fileInput     = document.getElementById('file-input');
   const cameraBtn     = document.getElementById('camera-btn');
-  const viewfinder    = document.getElementById('viewfinder');
-  const shutterWrap   = document.getElementById('shutter-wrap');
-  const shutterBtn    = document.getElementById('shutter-btn');
+  const cameraInput   = document.getElementById('camera-input');
   const preview       = document.getElementById('preview');
   const placeholder   = document.getElementById('placeholder');
   const readingStatus = document.getElementById('reading-status');
@@ -291,71 +261,13 @@
 
   let currentFile = null;
   let currentConf = 'none';
-  let activeStream  = null;
 
   // ── File upload (tap placeholder) ─────────────────────────────────────────
-  fileInput.addEventListener('change', () => {
-    const file = fileInput.files[0];
-    if (file) setFile(file);
-  });
+  fileInput.addEventListener('change',   () => { if (fileInput.files[0])   setFile(fileInput.files[0]); });
+  cameraInput.addEventListener('change', () => { if (cameraInput.files[0]) setFile(cameraInput.files[0]); });
 
   // ── Camera via getUserMedia ────────────────────────────────────────────────
-  cameraBtn.addEventListener('click', async () => {
-    stopStream();
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-      });
-      activeStream = stream;
-
-      viewfinder.srcObject = stream;
-      viewfinder.style.display = 'block';
-      placeholder.style.display = 'none';
-      preview.style.display = 'none';
-      shutterWrap.style.display = 'flex';
-      cameraBtn.style.display = 'none';
-
-      // Apply 3× zoom if supported
-      const track = stream.getVideoTracks()[0];
-      const caps  = track.getCapabilities?.() ?? {};
-      if (caps.zoom) {
-        const target = Math.min(3, caps.zoom.max);
-        await track.applyConstraints({ advanced: [{ zoom: target }] }).catch(() => {});
-      }
-    } catch {
-      // Fallback: native file picker with capture
-      const tmp = document.createElement('input');
-      tmp.type = 'file';
-      tmp.accept = 'image/*';
-      tmp.capture = 'environment';
-      tmp.onchange = () => { if (tmp.files[0]) setFile(tmp.files[0]); };
-      tmp.click();
-    }
-  });
-
-  // ── Shutter ────────────────────────────────────────────────────────────────
-  shutterBtn.addEventListener('click', () => {
-    const canvas = document.createElement('canvas');
-    canvas.width  = viewfinder.videoWidth;
-    canvas.height = viewfinder.videoHeight;
-    canvas.getContext('2d').drawImage(viewfinder, 0, 0);
-
-    stopStream();
-    viewfinder.style.display = 'none';
-    shutterWrap.style.display = 'none';
-
-    canvas.toBlob(blob => {
-      const file = new File([blob], 'odometer.jpg', { type: 'image/jpeg' });
-      setFile(file);
-    }, 'image/jpeg', 0.92);
-  });
-
-  function stopStream() {
-    if (activeStream) {
-      activeStream.getTracks().forEach(t => t.stop());
-      activeStream = null;
-    }
-  }
+  cameraBtn.addEventListener('click', () => cameraInput.click());
 
   // ── Set file → show preview → OCR ─────────────────────────────────────────
   function setFile(file) {
@@ -424,16 +336,14 @@
   }
 
   function reset() {
-    stopStream();
     currentFile = null;
     preview.style.display = 'none';
     preview.classList.remove('compact');
-    viewfinder.style.display = 'none';
-    shutterWrap.style.display = 'none';
     placeholder.style.display = 'flex';
     resultDiv.style.display = 'none';
     cameraBtn.style.display = '';
     fileInput.value = '';
+    cameraInput.value = '';
   }
 
   btnRetake.addEventListener('click', reset);
