@@ -16,12 +16,11 @@
       flex-direction: column;
     }
 
-    /* ── Photo ── */
+    /* ── Photo area ── */
     #photo-wrap {
       width: 100%;
       background: #000;
       position: relative;
-      cursor: pointer;
     }
     #photo-wrap input[type="file"] {
       position: absolute;
@@ -36,7 +35,14 @@
       width: 100%;
       max-height: 55dvh;
       object-fit: contain;
-      display: block;
+      display: none;
+    }
+    #viewfinder {
+      width: 100%;
+      max-height: 55dvh;
+      object-fit: cover;
+      display: none;
+      background: #000;
     }
     #placeholder {
       width: 100%;
@@ -52,12 +58,32 @@
     #placeholder svg { width: 52px; height: 52px; opacity: 0.35; }
     #placeholder span { font-size: 0.9rem; }
 
+    /* Shutter button overlay on viewfinder */
+    #shutter-wrap {
+      display: none;
+      position: absolute;
+      bottom: 16px;
+      left: 0; right: 0;
+      justify-content: center;
+      z-index: 5;
+    }
+    #shutter-btn {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: #fff;
+      border: 4px solid #94a3b8;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    #shutter-btn:active { transform: scale(0.92); }
+
     /* ── Controls ── */
     #controls {
       display: flex;
       gap: 10px;
       padding: 12px 16px;
       border-bottom: 1px solid #1e293b;
+      align-items: center;
     }
     .btn {
       flex: 1;
@@ -71,10 +97,8 @@
     }
     .btn:hover:not(:disabled) { filter: brightness(1.15); }
     .btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .btn-primary  { background: #3b82f6; color: #fff; }
-    .btn-ghost    { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
-
-    #controls.reading { justify-content: center; }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-ghost   { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
 
     .spinner {
       display: inline-block;
@@ -88,13 +112,19 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    #reading-status {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      display: none;
+      align-items: center;
+    }
+
     /* ── Result ── */
     #result {
       display: none;
       padding: 20px 16px 16px;
       border-bottom: 1px solid #1e293b;
     }
-
     .result-label {
       font-size: 0.7rem;
       text-transform: uppercase;
@@ -112,16 +142,14 @@
       font-weight: 700;
       letter-spacing: 0.06em;
     }
-    .badge-high   { background: #14532d; color: #4ade80; }
-    .badge-low    { background: #713f12; color: #fbbf24; }
-    .badge-none   { background: #450a0a; color: #f87171; }
+    .badge-high { background: #14532d; color: #4ade80; }
+    .badge-low  { background: #713f12; color: #fbbf24; }
+    .badge-none { background: #450a0a; color: #f87171; }
 
-    /* Editable km */
     .km-row {
       display: flex;
       align-items: baseline;
       gap: 8px;
-      margin-bottom: 16px;
     }
     #km-input {
       font-size: 3.2rem;
@@ -145,7 +173,6 @@
       flex-shrink: 0;
       padding-bottom: 6px;
     }
-
     .km-actions {
       display: flex;
       gap: 10px;
@@ -168,10 +195,7 @@
     .km-action-cancel  { background: #450a0a; }
 
     /* ── Log ── */
-    #log {
-      flex: 1;
-      padding: 16px;
-    }
+    #log { flex: 1; padding: 16px; }
     #log h2 {
       font-size: 0.7rem;
       text-transform: uppercase;
@@ -187,22 +211,18 @@
       border-bottom: 1px solid #1e293b;
     }
     .log-entry:last-child { border-bottom: none; }
-    .log-thumb {
-      width: 54px; height: 54px;
-      object-fit: cover;
-      border-radius: 8px;
-      flex-shrink: 0;
-    }
+    .log-thumb { width: 54px; height: 54px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
     .log-km   { font-size: 1.15rem; font-weight: 700; }
     .log-meta { font-size: 0.72rem; color: #64748b; margin-top: 3px; }
   </style>
 </head>
 <body>
 
-<!-- Photo -->
+<!-- Photo / viewfinder -->
 <div id="photo-wrap">
   <input type="file" id="file-input" accept="image/*" />
-  <img id="preview" style="display:none" alt="" />
+  <video id="viewfinder" autoplay playsinline muted></video>
+  <img id="preview" alt="" />
   <div id="placeholder">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <path stroke-linecap="round" stroke-linejoin="round"
@@ -215,17 +235,17 @@
       <path stroke-linecap="round" stroke-linejoin="round"
         d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
     </svg>
-    <span>Tap to take or upload a photo</span>
+    <span>Tap to upload · or use Camera button</span>
+  </div>
+  <div id="shutter-wrap">
+    <button id="shutter-btn" title="Take photo"></button>
   </div>
 </div>
 
-<!-- Buttons -->
+<!-- Controls -->
 <div id="controls">
   <button class="btn btn-ghost" id="camera-btn">📷 Camera</button>
-  <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" />
-  <span id="reading-status" style="display:none; color:#94a3b8; font-size:0.9rem; align-items:center">
-    <span class="spinner"></span>Reading…
-  </span>
+  <span id="reading-status"><span class="spinner"></span>Reading…</span>
 </div>
 
 <!-- Result -->
@@ -252,12 +272,13 @@
 
 <script>
   const fileInput     = document.getElementById('file-input');
-  const cameraInput   = document.getElementById('camera-input');
   const cameraBtn     = document.getElementById('camera-btn');
-  const controls      = document.getElementById('controls');
-  const readingStatus = document.getElementById('reading-status');
+  const viewfinder    = document.getElementById('viewfinder');
+  const shutterWrap   = document.getElementById('shutter-wrap');
+  const shutterBtn    = document.getElementById('shutter-btn');
   const preview       = document.getElementById('preview');
   const placeholder   = document.getElementById('placeholder');
+  const readingStatus = document.getElementById('reading-status');
   const resultDiv     = document.getElementById('result');
   const confBadge     = document.getElementById('conf-badge');
   const kmInput       = document.getElementById('km-input');
@@ -268,7 +289,73 @@
 
   let currentFile = null;
   let currentConf = 'none';
+  let activeStream  = null;
 
+  // ── File upload (tap placeholder) ─────────────────────────────────────────
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (file) setFile(file);
+  });
+
+  // ── Camera via getUserMedia ────────────────────────────────────────────────
+  cameraBtn.addEventListener('click', async () => {
+    stopStream();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+      });
+      activeStream = stream;
+
+      viewfinder.srcObject = stream;
+      viewfinder.style.display = 'block';
+      placeholder.style.display = 'none';
+      preview.style.display = 'none';
+      shutterWrap.style.display = 'flex';
+      cameraBtn.style.display = 'none';
+
+      // Apply 3× zoom if supported
+      const track = stream.getVideoTracks()[0];
+      const caps  = track.getCapabilities?.() ?? {};
+      if (caps.zoom) {
+        const target = Math.min(3, caps.zoom.max);
+        await track.applyConstraints({ advanced: [{ zoom: target }] }).catch(() => {});
+      }
+    } catch {
+      // Fallback: native file picker with capture
+      const tmp = document.createElement('input');
+      tmp.type = 'file';
+      tmp.accept = 'image/*';
+      tmp.capture = 'environment';
+      tmp.onchange = () => { if (tmp.files[0]) setFile(tmp.files[0]); };
+      tmp.click();
+    }
+  });
+
+  // ── Shutter ────────────────────────────────────────────────────────────────
+  shutterBtn.addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width  = viewfinder.videoWidth;
+    canvas.height = viewfinder.videoHeight;
+    canvas.getContext('2d').drawImage(viewfinder, 0, 0);
+
+    stopStream();
+    viewfinder.style.display = 'none';
+    shutterWrap.style.display = 'none';
+
+    canvas.toBlob(blob => {
+      const file = new File([blob], 'odometer.jpg', { type: 'image/jpeg' });
+      setFile(file);
+    }, 'image/jpeg', 0.92);
+  });
+
+  function stopStream() {
+    if (activeStream) {
+      activeStream.getTracks().forEach(t => t.stop());
+      activeStream = null;
+    }
+  }
+
+  // ── Set file → show preview → OCR ─────────────────────────────────────────
   function setFile(file) {
     if (!file?.type.startsWith('image/')) return;
     currentFile = file;
@@ -278,10 +365,6 @@
     resultDiv.style.display = 'none';
     readOcr();
   }
-
-  fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
-  cameraBtn.addEventListener('click', () => cameraInput.click());
-  cameraInput.addEventListener('change', () => setFile(cameraInput.files[0]));
 
   function resizeToBase64(file, maxWidth = 1600) {
     return new Promise(resolve => {
@@ -305,7 +388,6 @@
   async function readOcr() {
     cameraBtn.style.display = 'none';
     readingStatus.style.display = 'flex';
-    resultDiv.style.display = 'none';
 
     try {
       const image = await resizeToBase64(currentFile);
@@ -315,13 +397,7 @@
         body: JSON.stringify({ image, mimeType: 'image/jpeg' }),
       });
       const data = await resp.json();
-
-      if (!resp.ok) {
-        alert(data.error + (data.detail ? '\n\n' + data.detail : ''));
-        reset();
-        return;
-      }
-
+      if (!resp.ok) { alert(data.error + (data.detail ? '\n\n' + data.detail : '')); reset(); return; }
       showResult(data.result);
     } catch (err) {
       alert('Request failed: ' + err.message);
@@ -331,6 +407,7 @@
     }
   }
 
+  // ── Result ─────────────────────────────────────────────────────────────────
   function badgeClass(c) {
     return c === 'high' ? 'badge-high' : c === 'low' ? 'badge-low' : 'badge-none';
   }
@@ -344,13 +421,15 @@
   }
 
   function reset() {
+    stopStream();
     currentFile = null;
     preview.style.display = 'none';
+    viewfinder.style.display = 'none';
+    shutterWrap.style.display = 'none';
     placeholder.style.display = 'flex';
     resultDiv.style.display = 'none';
     cameraBtn.style.display = '';
     fileInput.value = '';
-    cameraInput.value = '';
   }
 
   btnRetake.addEventListener('click', reset);
@@ -366,6 +445,7 @@
     reset();
   });
 
+  // ── Log ────────────────────────────────────────────────────────────────────
   function addLog(file, km, conf) {
     logDiv.style.display = 'block';
     const entry = document.createElement('div');
