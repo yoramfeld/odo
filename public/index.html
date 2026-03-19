@@ -74,6 +74,8 @@
     .btn-primary  { background: #3b82f6; color: #fff; }
     .btn-ghost    { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
 
+    #controls.reading { justify-content: center; }
+
     .spinner {
       display: inline-block;
       width: 14px; height: 14px;
@@ -144,10 +146,26 @@
       padding-bottom: 6px;
     }
 
-    .result-actions {
+    .km-actions {
       display: flex;
       gap: 10px;
+      flex-shrink: 0;
+      padding-bottom: 4px;
     }
+    .km-action {
+      width: 44px; height: 44px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: filter 0.15s;
+    }
+    .km-action:hover { filter: brightness(1.2); }
+    .km-action-confirm { background: #14532d; }
+    .km-action-cancel  { background: #450a0a; }
 
     /* ── Log ── */
     #log {
@@ -204,8 +222,10 @@
 <!-- Buttons -->
 <div id="controls">
   <button class="btn btn-ghost" id="camera-btn">📷 Camera</button>
-  <button class="btn btn-primary" id="read-btn" disabled>Read Odometer</button>
   <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" />
+  <span id="reading-status" style="display:none; color:#94a3b8; font-size:0.9rem; align-items:center">
+    <span class="spinner"></span>Reading…
+  </span>
 </div>
 
 <!-- Result -->
@@ -217,10 +237,10 @@
   <div class="km-row">
     <input type="number" id="km-input" min="0" placeholder="—" />
     <span class="km-unit">km</span>
-  </div>
-  <div class="result-actions">
-    <button class="btn btn-ghost" id="btn-retake">Retake</button>
-    <button class="btn btn-primary" id="btn-confirm">Confirm</button>
+    <div class="km-actions">
+      <button class="km-action km-action-confirm" id="btn-confirm" title="Confirm">✓</button>
+      <button class="km-action km-action-cancel"  id="btn-retake"  title="Retake">✕</button>
+    </div>
   </div>
 </div>
 
@@ -231,19 +251,20 @@
 </div>
 
 <script>
-  const fileInput  = document.getElementById('file-input');
-  const cameraInput= document.getElementById('camera-input');
-  const cameraBtn  = document.getElementById('camera-btn');
-  const preview    = document.getElementById('preview');
-  const placeholder= document.getElementById('placeholder');
-  const readBtn    = document.getElementById('read-btn');
-  const resultDiv  = document.getElementById('result');
-  const confBadge  = document.getElementById('conf-badge');
-  const kmInput    = document.getElementById('km-input');
-  const btnRetake  = document.getElementById('btn-retake');
-  const btnConfirm = document.getElementById('btn-confirm');
-  const logDiv     = document.getElementById('log');
-  const logEntries = document.getElementById('log-entries');
+  const fileInput     = document.getElementById('file-input');
+  const cameraInput   = document.getElementById('camera-input');
+  const cameraBtn     = document.getElementById('camera-btn');
+  const controls      = document.getElementById('controls');
+  const readingStatus = document.getElementById('reading-status');
+  const preview       = document.getElementById('preview');
+  const placeholder   = document.getElementById('placeholder');
+  const resultDiv     = document.getElementById('result');
+  const confBadge     = document.getElementById('conf-badge');
+  const kmInput       = document.getElementById('km-input');
+  const btnRetake     = document.getElementById('btn-retake');
+  const btnConfirm    = document.getElementById('btn-confirm');
+  const logDiv        = document.getElementById('log');
+  const logEntries    = document.getElementById('log-entries');
 
   let currentFile = null;
   let currentConf = 'none';
@@ -255,7 +276,7 @@
     preview.style.display = 'block';
     placeholder.style.display = 'none';
     resultDiv.style.display = 'none';
-    readBtn.disabled = false;
+    readOcr();
   }
 
   fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
@@ -281,10 +302,9 @@
     });
   }
 
-  readBtn.addEventListener('click', async () => {
-    if (!currentFile) return;
-    readBtn.disabled = true;
-    readBtn.innerHTML = '<span class="spinner"></span>Reading…';
+  async function readOcr() {
+    cameraBtn.style.display = 'none';
+    readingStatus.style.display = 'flex';
     resultDiv.style.display = 'none';
 
     try {
@@ -298,17 +318,18 @@
 
       if (!resp.ok) {
         alert(data.error + (data.detail ? '\n\n' + data.detail : ''));
+        reset();
         return;
       }
 
       showResult(data.result);
     } catch (err) {
       alert('Request failed: ' + err.message);
+      reset();
     } finally {
-      readBtn.disabled = false;
-      readBtn.textContent = 'Read Odometer';
+      readingStatus.style.display = 'none';
     }
-  });
+  }
 
   function badgeClass(c) {
     return c === 'high' ? 'badge-high' : c === 'low' ? 'badge-low' : 'badge-none';
@@ -320,19 +341,19 @@
     confBadge.textContent = currentConf;
     confBadge.className   = 'badge ' + badgeClass(currentConf);
     resultDiv.style.display = 'block';
-    kmInput.focus();
-    kmInput.select();
   }
 
-  btnRetake.addEventListener('click', () => {
-    resultDiv.style.display = 'none';
+  function reset() {
     currentFile = null;
     preview.style.display = 'none';
     placeholder.style.display = 'flex';
-    readBtn.disabled = true;
+    resultDiv.style.display = 'none';
+    cameraBtn.style.display = '';
     fileInput.value = '';
     cameraInput.value = '';
-  });
+  }
+
+  btnRetake.addEventListener('click', reset);
 
   btnConfirm.addEventListener('click', () => {
     const val = parseInt(kmInput.value, 10);
@@ -342,13 +363,7 @@
       return;
     }
     addLog(currentFile, val, currentConf);
-    resultDiv.style.display = 'none';
-    currentFile = null;
-    preview.style.display = 'none';
-    placeholder.style.display = 'flex';
-    readBtn.disabled = true;
-    fileInput.value = '';
-    cameraInput.value = '';
+    reset();
   });
 
   function addLog(file, km, conf) {
