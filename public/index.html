@@ -7,122 +7,76 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --border: #334155;
-      --text: #f1f5f9;
-      --muted: #64748b;
-      --blue: #3b82f6;
-      --green: #22c55e;
-      --amber: #f59e0b;
-      --red: #ef4444;
-    }
-
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      background: #0f172a;
+      color: #f1f5f9;
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
     }
 
-    /* ── Header ── */
-    header {
-      padding: 16px 20px 12px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-    }
-    header h1 { font-size: 1rem; font-weight: 700; }
-    header p  { font-size: 0.75rem; color: var(--muted); }
-
-    /* ── Main capture area ── */
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 20px;
-      gap: 16px;
-    }
-
-    /* Preview / placeholder */
-    #photo-area {
+    /* ── Photo ── */
+    #photo-wrap {
       width: 100%;
-      max-width: 420px;
-      aspect-ratio: 4/3;
-      background: var(--surface);
-      border: 2px dashed var(--border);
-      border-radius: 16px;
-      overflow: hidden;
+      background: #000;
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       cursor: pointer;
-      transition: border-color 0.2s;
     }
-    #photo-area:hover  { border-color: var(--blue); }
-    #photo-area.has-photo { border-style: solid; border-color: var(--border); }
-
-    #photo-area input[type="file"] {
+    #photo-wrap input[type="file"] {
       position: absolute;
       inset: 0;
       opacity: 0;
       cursor: pointer;
       width: 100%;
       height: 100%;
+      z-index: 2;
     }
     #preview {
       width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: none;
+      max-height: 55dvh;
+      object-fit: contain;
+      display: block;
     }
-    #photo-placeholder {
+    #placeholder {
+      width: 100%;
+      height: 42dvh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
-      pointer-events: none;
-      color: var(--muted);
+      justify-content: center;
+      gap: 10px;
+      color: #475569;
+      background: #1e293b;
     }
-    #photo-placeholder svg { width: 48px; height: 48px; opacity: 0.4; }
-    #photo-placeholder span { font-size: 0.85rem; }
+    #placeholder svg { width: 52px; height: 52px; opacity: 0.35; }
+    #placeholder span { font-size: 0.9rem; }
 
-    /* Action buttons */
-    .btn-row {
+    /* ── Controls ── */
+    #controls {
       display: flex;
       gap: 10px;
-      width: 100%;
-      max-width: 420px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #1e293b;
     }
     .btn {
       flex: 1;
-      padding: 14px 10px;
+      padding: 13px;
       border: none;
-      border-radius: 12px;
-      font-size: 0.95rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
       transition: filter 0.15s, opacity 0.15s;
     }
     .btn:hover:not(:disabled) { filter: brightness(1.15); }
-    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .btn-primary { background: var(--blue); color: #fff; }
-    .btn-secondary {
-      background: var(--surface);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn-primary  { background: #3b82f6; color: #fff; }
+    .btn-ghost    { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
 
     .spinner {
       display: inline-block;
-      width: 16px; height: 16px;
+      width: 14px; height: 14px;
       border: 2px solid #fff4;
       border-top-color: #fff;
       border-radius: 50%;
@@ -132,164 +86,79 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Bottom sheet ── */
-    #overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.65);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-      z-index: 10;
+    /* ── Result ── */
+    #result {
+      display: none;
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid #1e293b;
     }
-    #overlay.open { opacity: 1; pointer-events: auto; }
-
-    #sheet {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: var(--surface);
-      border-radius: 20px 20px 0 0;
-      padding: 12px 24px 32px;
-      transform: translateY(100%);
-      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-      z-index: 11;
-      max-width: 540px;
-      margin: 0 auto;
-    }
-    #sheet.open { transform: translateY(0); }
-
-    .sheet-handle {
-      width: 40px; height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      margin: 0 auto 20px;
-    }
-
-    /* Result display */
-    .result-confidence {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 6px;
-    }
-    .badge {
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .badge-high { background: #14532d; color: #4ade80; }
-    .badge-low  { background: #713f12; color: #fbbf24; }
-    .badge-none { background: #450a0a; color: #f87171; }
-    .badge-edited { background: #1e3a5f; color: #60a5fa; }
 
     .result-label {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    /* km display — normal read mode */
-    #km-display {
-      font-size: 3.5rem;
-      font-weight: 800;
-      color: var(--text);
-      letter-spacing: -2px;
-      line-height: 1.1;
-      margin-bottom: 4px;
-    }
-    #km-display .unit {
-      font-size: 1.4rem;
-      font-weight: 400;
-      color: var(--muted);
-      letter-spacing: 0;
-      margin-left: 4px;
-    }
-
-    /* km edit mode */
-    #km-edit-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 4px;
-    }
-    #km-input {
-      font-size: 2.8rem;
-      font-weight: 800;
-      color: var(--text);
-      background: var(--bg);
-      border: 2px solid var(--blue);
-      border-radius: 10px;
-      padding: 6px 14px;
-      width: 100%;
-      letter-spacing: -1px;
-      -moz-appearance: textfield;
-    }
-    #km-input::-webkit-outer-spin-button,
-    #km-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-    #km-input:focus { outline: none; }
-
-    .sheet-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    .act-btn {
-      padding: 14px 8px;
-      border: none;
-      border-radius: 12px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: filter 0.15s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-    }
-    .act-btn:hover { filter: brightness(1.15); }
-    .act-btn svg { width: 20px; height: 20px; }
-
-    .act-confirm { background: #14532d; color: #4ade80; }
-    .act-retake  { background: #1e293b; color: var(--muted); border: 1px solid var(--border); }
-    .act-edit    { background: #1e3a5f; color: #60a5fa; }
-    .act-save    { background: var(--blue); color: #fff; grid-column: 1 / -1; flex-direction: row; padding: 16px; }
-
-    details.raw-toggle { margin-top: 18px; }
-    details.raw-toggle summary {
-      font-size: 0.75rem;
-      color: var(--muted);
-      cursor: pointer;
-      user-select: none;
-    }
-    pre.raw-json {
-      margin-top: 8px;
-      padding: 10px;
-      background: var(--bg);
-      border-radius: 8px;
-      font-size: 0.7rem;
-      color: var(--muted);
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      max-height: 120px;
-      overflow-y: auto;
-    }
-
-    /* ── Session log ── */
-    #log-section {
-      border-top: 1px solid var(--border);
-      padding: 16px 20px 32px;
-    }
-    #log-section h2 {
       font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--muted);
+      color: #64748b;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+    .badge-high   { background: #14532d; color: #4ade80; }
+    .badge-low    { background: #713f12; color: #fbbf24; }
+    .badge-none   { background: #450a0a; color: #f87171; }
+
+    /* Editable km */
+    .km-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    #km-input {
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: #f1f5f9;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid #334155;
+      width: 100%;
+      padding: 0 0 4px;
+      letter-spacing: -2px;
+      -moz-appearance: textfield;
+      transition: border-color 0.2s;
+    }
+    #km-input::-webkit-outer-spin-button,
+    #km-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    #km-input:focus { outline: none; border-bottom-color: #3b82f6; }
+    .km-unit {
+      font-size: 1.2rem;
+      color: #64748b;
+      flex-shrink: 0;
+      padding-bottom: 6px;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* ── Log ── */
+    #log {
+      flex: 1;
+      padding: 16px;
+    }
+    #log h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #475569;
       margin-bottom: 12px;
     }
     .log-entry {
@@ -297,184 +166,95 @@
       align-items: center;
       gap: 12px;
       padding: 10px 0;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid #1e293b;
     }
     .log-entry:last-child { border-bottom: none; }
     .log-thumb {
-      width: 52px; height: 52px;
+      width: 54px; height: 54px;
       object-fit: cover;
       border-radius: 8px;
       flex-shrink: 0;
     }
-    .log-km { font-size: 1.2rem; font-weight: 700; }
-    .log-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
-
-    @media (min-width: 540px) {
-      #sheet { left: 50%; right: auto; transform: translateX(-50%) translateY(100%); width: 540px; border-radius: 20px 20px 0 0; }
-      #sheet.open { transform: translateX(-50%) translateY(0); }
-    }
+    .log-km   { font-size: 1.15rem; font-weight: 700; }
+    .log-meta { font-size: 0.72rem; color: #64748b; margin-top: 3px; }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>Fleet KM Logger</h1>
-  <p>Odometer OCR</p>
-</header>
-
-<main>
-  <div id="photo-area">
-    <input type="file" id="file-input" accept="image/*" />
-    <img id="preview" alt="odometer preview" />
-    <div id="photo-placeholder">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path stroke-linecap="round" stroke-linejoin="round"
-          d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175
-             C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15
-             A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169
-             a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055
-             l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0
-             2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-        <path stroke-linecap="round" stroke-linejoin="round"
-          d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-      </svg>
-      <span>Tap to take photo or upload</span>
-    </div>
+<!-- Photo -->
+<div id="photo-wrap">
+  <input type="file" id="file-input" accept="image/*" />
+  <img id="preview" style="display:none" alt="" />
+  <div id="placeholder">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175
+           C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15
+           A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169
+           a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055
+           l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0
+           2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+    </svg>
+    <span>Tap to take or upload a photo</span>
   </div>
+</div>
 
-  <div class="btn-row">
-    <button class="btn btn-secondary" id="camera-btn">📷 Camera</button>
-    <button class="btn btn-primary" id="read-btn" disabled>Read Odometer</button>
-  </div>
-
+<!-- Buttons -->
+<div id="controls">
+  <button class="btn btn-ghost" id="camera-btn">📷 Camera</button>
+  <button class="btn btn-primary" id="read-btn" disabled>Read Odometer</button>
   <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" />
-</main>
+</div>
 
-<div id="log-section" style="display:none">
+<!-- Result -->
+<div id="result">
+  <div class="result-label">
+    Reading
+    <span id="conf-badge" class="badge"></span>
+  </div>
+  <div class="km-row">
+    <input type="number" id="km-input" min="0" placeholder="—" />
+    <span class="km-unit">km</span>
+  </div>
+  <div class="result-actions">
+    <button class="btn btn-ghost" id="btn-retake">Retake</button>
+    <button class="btn btn-primary" id="btn-confirm">Confirm</button>
+  </div>
+</div>
+
+<!-- Log -->
+<div id="log" style="display:none">
   <h2>Session log</h2>
   <div id="log-entries"></div>
 </div>
 
-<!-- Bottom sheet overlay -->
-<div id="overlay"></div>
-
-<div id="sheet">
-  <div class="sheet-handle"></div>
-
-  <div class="result-confidence">
-    <span class="result-label">Odometer reading</span>
-    <span id="confidence-badge" class="badge"></span>
-  </div>
-
-  <!-- Read mode -->
-  <div id="km-read-mode">
-    <div id="km-display">—<span class="unit">km</span></div>
-  </div>
-
-  <!-- Edit mode -->
-  <div id="km-edit-mode" style="display:none">
-    <div id="km-edit-row">
-      <input type="number" id="km-input" min="0" max="9999999" placeholder="Enter km" />
-    </div>
-  </div>
-
-  <!-- Normal actions -->
-  <div class="sheet-actions" id="normal-actions">
-    <button class="act-btn act-confirm" id="btn-confirm">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-      </svg>
-      Confirm
-    </button>
-    <button class="act-btn act-retake" id="btn-retake">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round"
-          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0
-             l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0
-             0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-      </svg>
-      Retake
-    </button>
-    <button class="act-btn act-edit" id="btn-edit">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round"
-          d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652
-             L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685
-             a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125L18 8.625" />
-      </svg>
-      Edit
-    </button>
-  </div>
-
-  <!-- Save action (edit mode) -->
-  <div class="sheet-actions" id="edit-actions" style="display:none">
-    <button class="act-btn act-retake" id="btn-cancel-edit">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-      </svg>
-      Cancel
-    </button>
-    <button class="act-btn act-save" id="btn-save-edit">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-      </svg>
-      Save &amp; Confirm
-    </button>
-  </div>
-
-  <details class="raw-toggle">
-    <summary>Raw API response</summary>
-    <pre class="raw-json" id="raw-json"></pre>
-  </details>
-</div>
-
 <script>
-  // ── State ──────────────────────────────────────────────────────────────────
+  const fileInput  = document.getElementById('file-input');
+  const cameraInput= document.getElementById('camera-input');
+  const cameraBtn  = document.getElementById('camera-btn');
+  const preview    = document.getElementById('preview');
+  const placeholder= document.getElementById('placeholder');
+  const readBtn    = document.getElementById('read-btn');
+  const resultDiv  = document.getElementById('result');
+  const confBadge  = document.getElementById('conf-badge');
+  const kmInput    = document.getElementById('km-input');
+  const btnRetake  = document.getElementById('btn-retake');
+  const btnConfirm = document.getElementById('btn-confirm');
+  const logDiv     = document.getElementById('log');
+  const logEntries = document.getElementById('log-entries');
+
   let currentFile = null;
-  let currentImageDataUrl = null;
-  let lastResult = null;   // {km, confidence}
-  let isEditing = false;
+  let currentConf = 'none';
 
-  // ── Elements ───────────────────────────────────────────────────────────────
-  const photoArea      = document.getElementById('photo-area');
-  const fileInput      = document.getElementById('file-input');
-  const cameraInput    = document.getElementById('camera-input');
-  const cameraBtn      = document.getElementById('camera-btn');
-  const preview        = document.getElementById('preview');
-  const placeholder    = document.getElementById('photo-placeholder');
-  const readBtn        = document.getElementById('read-btn');
-
-  const overlay        = document.getElementById('overlay');
-  const sheet          = document.getElementById('sheet');
-  const confBadge      = document.getElementById('confidence-badge');
-  const kmDisplay      = document.getElementById('km-display');
-  const kmReadMode     = document.getElementById('km-read-mode');
-  const kmEditMode     = document.getElementById('km-edit-mode');
-  const kmInput        = document.getElementById('km-input');
-  const normalActions  = document.getElementById('normal-actions');
-  const editActions    = document.getElementById('edit-actions');
-  const rawJson        = document.getElementById('raw-json');
-
-  const btnConfirm     = document.getElementById('btn-confirm');
-  const btnRetake      = document.getElementById('btn-retake');
-  const btnEdit        = document.getElementById('btn-edit');
-  const btnCancelEdit  = document.getElementById('btn-cancel-edit');
-  const btnSaveEdit    = document.getElementById('btn-save-edit');
-
-  const logSection     = document.getElementById('log-section');
-  const logEntries     = document.getElementById('log-entries');
-
-  // ── Photo selection ────────────────────────────────────────────────────────
   function setFile(file) {
-    if (!file || !file.type.startsWith('image/')) return;
+    if (!file?.type.startsWith('image/')) return;
     currentFile = file;
-    const url = URL.createObjectURL(file);
-    currentImageDataUrl = url;
-    preview.src = url;
+    preview.src = URL.createObjectURL(file);
     preview.style.display = 'block';
     placeholder.style.display = 'none';
-    photoArea.classList.add('has-photo');
+    resultDiv.style.display = 'none';
     readBtn.disabled = false;
   }
 
@@ -482,15 +262,6 @@
   cameraBtn.addEventListener('click', () => cameraInput.click());
   cameraInput.addEventListener('change', () => setFile(cameraInput.files[0]));
 
-  photoArea.addEventListener('dragover', e => { e.preventDefault(); photoArea.style.borderColor = 'var(--blue)'; });
-  photoArea.addEventListener('dragleave', () => photoArea.style.borderColor = '');
-  photoArea.addEventListener('drop', e => {
-    e.preventDefault();
-    photoArea.style.borderColor = '';
-    setFile(e.dataTransfer.files[0]);
-  });
-
-  // ── Image resize (client-side, keeps payload small) ───────────────────────
   function resizeToBase64(file, maxWidth = 1600) {
     return new Promise(resolve => {
       const img = new Image();
@@ -510,15 +281,15 @@
     });
   }
 
-  // ── OCR call ───────────────────────────────────────────────────────────────
   readBtn.addEventListener('click', async () => {
     if (!currentFile) return;
     readBtn.disabled = true;
     readBtn.innerHTML = '<span class="spinner"></span>Reading…';
+    resultDiv.style.display = 'none';
 
     try {
       const image = await resizeToBase64(currentFile);
-      const resp = await fetch('/api/ocr', {
+      const resp  = await fetch('/api/ocr', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ image, mimeType: 'image/jpeg' }),
@@ -530,7 +301,7 @@
         return;
       }
 
-      showSheet(data.result, data.raw);
+      showResult(data.result);
     } catch (err) {
       alert('Request failed: ' + err.message);
     } finally {
@@ -539,133 +310,65 @@
     }
   });
 
-  // ── Sheet ──────────────────────────────────────────────────────────────────
-  function confidenceBadgeClass(c) {
+  function badgeClass(c) {
     return c === 'high' ? 'badge-high' : c === 'low' ? 'badge-low' : 'badge-none';
   }
 
-  function showSheet(result, raw) {
-    lastResult = result;
-    isEditing = false;
-
-    const km   = result?.km;
-    const conf = result?.confidence ?? 'none';
-
-    confBadge.textContent = conf;
-    confBadge.className   = 'badge ' + confidenceBadgeClass(conf);
-
-    kmDisplay.innerHTML = km != null
-      ? `${km.toLocaleString()}<span class="unit">km</span>`
-      : `—<span class="unit">km</span>`;
-
-    kmReadMode.style.display = 'block';
-    kmEditMode.style.display = 'none';
-    normalActions.style.display = 'grid';
-    editActions.style.display   = 'none';
-
-    rawJson.textContent = JSON.stringify({ result, raw }, null, 2);
-
-    overlay.classList.add('open');
-    sheet.classList.add('open');
+  function showResult(result) {
+    currentConf = result?.confidence ?? 'none';
+    kmInput.value = result?.km ?? '';
+    confBadge.textContent = currentConf;
+    confBadge.className   = 'badge ' + badgeClass(currentConf);
+    resultDiv.style.display = 'block';
+    kmInput.focus();
+    kmInput.select();
   }
-
-  function closeSheet() {
-    overlay.classList.remove('open');
-    sheet.classList.remove('open');
-  }
-
-  overlay.addEventListener('click', closeSheet);
-
-  // ── Sheet actions ──────────────────────────────────────────────────────────
-  btnConfirm.addEventListener('click', () => {
-    const km   = lastResult?.km;
-    const conf = lastResult?.confidence ?? 'none';
-    addLog(currentFile, km, conf, false);
-    closeSheet();
-    resetCapture();
-  });
 
   btnRetake.addEventListener('click', () => {
-    closeSheet();
-    resetCapture();
-  });
-
-  btnEdit.addEventListener('click', () => {
-    isEditing = true;
-    kmInput.value = lastResult?.km ?? '';
-    kmReadMode.style.display = 'none';
-    kmEditMode.style.display = 'block';
-    kmInput.style.display = 'block';
-    normalActions.style.display = 'none';
-    editActions.style.display   = 'grid';
-    confBadge.textContent = 'edited';
-    confBadge.className   = 'badge badge-edited';
-    setTimeout(() => { kmInput.focus(); kmInput.select(); }, 50);
-  });
-
-  btnCancelEdit.addEventListener('click', () => {
-    isEditing = false;
-    const conf = lastResult?.confidence ?? 'none';
-    confBadge.textContent = conf;
-    confBadge.className   = 'badge ' + confidenceBadgeClass(conf);
-    kmReadMode.style.display = 'block';
-    kmEditMode.style.display = 'none';
-    normalActions.style.display = 'grid';
-    editActions.style.display   = 'none';
-  });
-
-  btnSaveEdit.addEventListener('click', () => {
-    const val = parseInt(kmInput.value, 10);
-    if (isNaN(val) || val < 0) {
-      kmInput.style.borderColor = 'var(--red)';
-      setTimeout(() => kmInput.style.borderColor = '', 800);
-      return;
-    }
-    addLog(currentFile, val, 'edited', true);
-    closeSheet();
-    resetCapture();
-  });
-
-  // ── Log ───────────────────────────────────────────────────────────────────
-  function addLog(file, km, confidence, edited) {
-    logSection.style.display = 'block';
-
-    const entry = document.createElement('div');
-    entry.className = 'log-entry';
-
-    const thumb = document.createElement('img');
-    thumb.className = 'log-thumb';
-    thumb.src = URL.createObjectURL(file);
-    thumb.alt = '';
-
-    const info = document.createElement('div');
-    const kmText = km != null ? km.toLocaleString() + ' km' : '— km';
-    const badgeClass = edited ? 'badge-edited' : confidenceBadgeClass(confidence);
-    const badgeLabel = edited ? 'edited' : confidence;
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    info.innerHTML = `
-      <div class="log-km">${kmText}</div>
-      <div class="log-meta">
-        <span class="badge ${badgeClass}" style="padding:2px 7px;font-size:0.65rem">${badgeLabel}</span>
-        &nbsp;${time}
-      </div>`;
-
-    entry.appendChild(thumb);
-    entry.appendChild(info);
-    logEntries.prepend(entry);
-  }
-
-  // ── Reset ──────────────────────────────────────────────────────────────────
-  function resetCapture() {
+    resultDiv.style.display = 'none';
     currentFile = null;
-    preview.src = '';
     preview.style.display = 'none';
     placeholder.style.display = 'flex';
-    photoArea.classList.remove('has-photo');
     readBtn.disabled = true;
     fileInput.value = '';
     cameraInput.value = '';
+  });
+
+  btnConfirm.addEventListener('click', () => {
+    const val = parseInt(kmInput.value, 10);
+    if (isNaN(val) || val < 0) {
+      kmInput.style.borderBottomColor = '#ef4444';
+      setTimeout(() => kmInput.style.borderBottomColor = '', 800);
+      return;
+    }
+    addLog(currentFile, val, currentConf);
+    resultDiv.style.display = 'none';
+    currentFile = null;
+    preview.style.display = 'none';
+    placeholder.style.display = 'flex';
+    readBtn.disabled = true;
+    fileInput.value = '';
+    cameraInput.value = '';
+  });
+
+  function addLog(file, km, conf) {
+    logDiv.style.display = 'block';
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    const thumb = document.createElement('img');
+    thumb.className = 'log-thumb';
+    thumb.src = URL.createObjectURL(file);
+    const info = document.createElement('div');
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    info.innerHTML = `
+      <div class="log-km">${km.toLocaleString()} km</div>
+      <div class="log-meta">
+        <span class="badge ${badgeClass(conf)}" style="padding:2px 7px;font-size:0.62rem">${conf}</span>
+        &nbsp;${time}
+      </div>`;
+    entry.appendChild(thumb);
+    entry.appendChild(info);
+    logEntries.prepend(entry);
   }
 </script>
 
