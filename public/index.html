@@ -36,7 +36,9 @@
       max-height: 55dvh;
       object-fit: contain;
       display: none;
+      transition: max-height 0.2s ease;
     }
+    #preview.compact { max-height: 27dvh; }
     #viewfinder {
       width: 100%;
       max-height: 55dvh;
@@ -418,12 +420,14 @@
     confBadge.textContent = currentConf;
     confBadge.className   = 'badge ' + badgeClass(currentConf);
     resultDiv.style.display = 'block';
+    preview.classList.add('compact');
   }
 
   function reset() {
     stopStream();
     currentFile = null;
     preview.style.display = 'none';
+    preview.classList.remove('compact');
     viewfinder.style.display = 'none';
     shutterWrap.style.display = 'none';
     placeholder.style.display = 'flex';
