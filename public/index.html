@@ -217,6 +217,10 @@
 <div id="controls">
   <button class="btn btn-ghost" id="camera-btn">📷 Camera</button>
   <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" />
+  <input type="number" id="ballpark" placeholder="~km hint" min="0"
+    style="flex:1; padding:10px 8px; background:#1e293b; border:1px solid #334155;
+           border-radius:10px; color:#f1f5f9; font-size:0.9rem;
+           -moz-appearance:textfield;" />
   <span id="reading-status"><span class="spinner"></span>Reading…</span>
 </div>
 
@@ -246,6 +250,7 @@
   const fileInput     = document.getElementById('file-input');
   const cameraBtn     = document.getElementById('camera-btn');
   const cameraInput   = document.getElementById('camera-input');
+  const ballpark      = document.getElementById('ballpark');
   const preview       = document.getElementById('preview');
   const placeholder   = document.getElementById('placeholder');
   const readingStatus = document.getElementById('reading-status');
@@ -299,6 +304,7 @@
 
   async function readOcr() {
     cameraBtn.style.display = 'none';
+    ballpark.style.display = 'none';
     readingStatus.style.display = 'flex';
 
     try {
@@ -306,7 +312,12 @@
       const resp  = await fetch('/api/ocr', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ image, mimeType: 'image/jpeg' }),
+        body: JSON.stringify({
+          image,
+          mimeType: 'image/jpeg',
+          useContext: !!ballpark.value,
+          prefixDigits: ballpark.value.trim(),
+        }),
       });
       const data = await resp.json();
       if (!resp.ok) { alert(data.error + (data.detail ? '\n\n' + data.detail : '')); reset(); return; }
@@ -340,6 +351,7 @@
     placeholder.style.display = 'flex';
     resultDiv.style.display = 'none';
     cameraBtn.style.display = '';
+    ballpark.style.display = '';
     fileInput.value = '';
     cameraInput.value = '';
   }
