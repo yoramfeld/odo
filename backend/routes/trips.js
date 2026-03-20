@@ -33,7 +33,7 @@ function validateEndKm(startKm, startTime, endKm, endTime) {
   const hours = (new Date(endTime) - new Date(startTime)) / 3_600_000;
   const speed = hours > 0 ? Math.round(delta / hours) : 0;
 
-  if (speed > SPEED_MAX) {
+  if (hours >= 0.25 && speed > SPEED_MAX) {
     // Same prefix-correction attempt
     const prefix    = String(startKm).slice(0, -3);
     const suffix    = String(endKm).slice(-3);
