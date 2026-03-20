@@ -154,6 +154,11 @@ function TripsTab({ cars, drivers }) {
                   <div className="text-slate-500 text-xs mt-0.5">
                     {t.start_km_confirmed?.toLocaleString()} → {t.end_km_confirmed?.toLocaleString() ?? '…'}
                   </div>
+                  {t.start_time && t.end_time && (() => {
+                    const mins = Math.round((new Date(t.end_time) - new Date(t.start_time)) / 60000);
+                    const h = Math.floor(mins / 60), m = mins % 60;
+                    return <div className="text-slate-500 text-xs">{h}:{String(m).padStart(2,'0')}</div>;
+                  })()}
                 </div>
               </div>
             </div>

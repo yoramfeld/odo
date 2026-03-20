@@ -149,9 +149,8 @@ export default function TripEnd() {
   );
 
   const elapsed = Math.round((Date.now() - new Date(trip.start_time)) / 60000);
-  const elapsedText = elapsed < 60
-    ? `${elapsed} min ago`
-    : `${Math.floor(elapsed / 60)}h ${elapsed % 60}m ago`;
+  const elapsedH = Math.floor(elapsed / 60), elapsedM = elapsed % 60;
+  const elapsedText = `${elapsedH}:${String(elapsedM).padStart(2, '0')}`;
 
   const distance = endKm && parseInt(endKm) > trip.start_km_confirmed
     ? parseInt(endKm) - trip.start_km_confirmed
@@ -175,7 +174,7 @@ export default function TripEnd() {
           </div>
           <div className="text-slate-400 text-sm">{trip.reason}</div>
           <div className="text-slate-500 text-xs">
-            Started {elapsedText} · {trip.start_km_confirmed?.toLocaleString()} km
+            Duration {elapsedText} · {trip.start_km_confirmed?.toLocaleString()} km
           </div>
         </div>
 

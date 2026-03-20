@@ -3,9 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../api/auth';
 
+function fmtDuration(start, end) {
+  if (!start || !end) return null;
+  const mins = Math.round((new Date(end) - new Date(start)) / 60000);
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return `${h}:${String(m).padStart(2, '0')}`;
+}
+
 function TripCard({ trip }) {
   const date = new Date(trip.start_time).toLocaleDateString('he-IL');
   const dist = trip.distance_km != null ? `${trip.distance_km} km` : '—';
+  const dur  = fmtDuration(trip.start_time, trip.end_time);
 
   return (
     <div className="flex items-center gap-3 py-3 border-b border-slate-800 last:border-0">
@@ -21,7 +29,7 @@ function TripCard({ trip }) {
       </div>
       <div className="text-right flex-shrink-0">
         <div className="text-white font-medium">{dist}</div>
-        <div className="text-slate-500 text-xs">{date}</div>
+        <div className="text-slate-500 text-xs">{dur && <span className="mr-1">{dur}</span>}{date}</div>
       </div>
     </div>
   );
