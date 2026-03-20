@@ -63,7 +63,7 @@ export default function DriverDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
         <div>
-          <h1 className="text-white font-bold text-lg leading-tight">מד קילומטראז׳</h1>
+          <h1 className="text-white font-bold text-lg leading-tight">יומן נסיעות</h1>
           <p className="text-slate-400 text-sm">שלום, {user?.name}</p>
         </div>
         <div className="flex items-center gap-3">

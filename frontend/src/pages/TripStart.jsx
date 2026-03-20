@@ -207,13 +207,13 @@ export default function TripStart() {
                 onChange={e => handleKmChange(e.target.value)}
                 required
                 min={0}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pr-12
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pl-12
                            text-white text-2xl font-bold focus:outline-none focus:border-blue-500
                            [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
                            [&::-webkit-inner-spin-button]:appearance-none"
               />
               <button type="button" onClick={() => cameraRef.current.click()}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl leading-none">
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl leading-none">
                 {ocrLoading
                   ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -252,7 +252,7 @@ export default function TripStart() {
               type="text"
               value={reason}
               onChange={e => setReason(e.target.value)}
-              placeholder="לדוגמה: ביקור לקוח, איסוף ציוד…"
+              placeholder='לדוגמה: בט"ש, איסוף ציוד…'
               required
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                          text-white focus:outline-none focus:border-blue-500"

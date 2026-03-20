@@ -32,7 +32,7 @@ export default function Login() {
         {/* Logo / title */}
         <div className="text-center mb-10">
           <div className="text-4xl mb-3">🚗</div>
-          <h1 className="text-2xl font-bold text-white">מד קילומטראז׳</h1>
+          <h1 className="text-2xl font-bold text-white">יומן נסיעות</h1>
           <p className="text-slate-400 text-sm mt-1">כניסה למערכת</p>
         </div>
 
