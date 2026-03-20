@@ -77,6 +77,15 @@ CREATE TABLE IF NOT EXISTS error_logs (
   user_id      INTEGER REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS location_corrections (
+  id         SERIAL PRIMARY KEY,
+  lat        FLOAT NOT NULL,
+  lng        FLOAT NOT NULL,
+  name       TEXT NOT NULL,
+  use_count  INTEGER DEFAULT 1,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_login_attempts_phone ON login_attempts(phone, attempted_at);
 CREATE INDEX IF NOT EXISTS idx_trips_car_id        ON trips(car_id);
 CREATE INDEX IF NOT EXISTS idx_trips_driver_id     ON trips(driver_id);

@@ -15,7 +15,8 @@ app.use('/api/cars',    require('./routes/cars'));
 app.use('/api/drivers', require('./routes/drivers'));
 app.use('/api/trips',   require('./routes/trips'));
 app.use('/api/export',  require('./routes/export'));
-app.use('/api/errors',  require('./routes/errors'));
+app.use('/api/errors',    require('./routes/errors'));
+app.use('/api/locations', require('./routes/locations'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ ok: true }));

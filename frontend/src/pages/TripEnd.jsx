@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
 
-async function getLocationStr() {
+async function getLocationFull() {
   return new Promise(resolve => {
     if (!navigator.geolocation) { resolve(null); return; }
     navigator.geolocation.getCurrentPosition(async pos => {
@@ -16,8 +16,9 @@ async function getLocationStr() {
         const a = d.address || {};
         const road = a.road || a.pedestrian || a.footway || '';
         const city = a.city || a.town || a.village || a.suburb || '';
-        resolve([road, city].filter(Boolean).join(', ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-      } catch { resolve(`${lat.toFixed(5)}, ${lng.toFixed(5)}`); }
+        const address = [road, city].filter(Boolean).join(', ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        resolve({ lat, lng, address });
+      } catch { resolve({ lat, lng, address: `${lat.toFixed(5)}, ${lng.toFixed(5)}` }); }
     }, () => resolve(null), { timeout: 8000, maximumAge: 30000 });
   });
 }
@@ -37,15 +38,25 @@ export default function TripEnd() {
   const [locationText, setLocationText]   = useState('');
   const [detectedLoc, setDetectedLoc]     = useState(null);
   const [locationLoading, setLocLoading]  = useState(true);
+  const [gpsCoords, setGpsCoords]         = useState(null);
 
   const cameraRef  = useRef();
   const canvasRef  = useRef(null);
 
   useEffect(() => {
     api.get(`/trips/${tripId}`).then(res => setTrip(res.data));
-    getLocationStr().then(loc => {
-      setDetectedLoc(loc);
-      setLocationText(loc || '');
+    getLocationFull().then(async result => {
+      if (!result) { setLocLoading(false); return; }
+      setGpsCoords({ lat: result.lat, lng: result.lng });
+      try {
+        const { data } = await api.get(`/locations/lookup?lat=${result.lat}&lng=${result.lng}`);
+        const name = data.name || result.address;
+        setDetectedLoc(name);
+        setLocationText(name);
+      } catch {
+        setDetectedLoc(result.address);
+        setLocationText(result.address);
+      }
       setLocLoading(false);
     });
   }, [tripId]);
@@ -137,6 +148,9 @@ export default function TripEnd() {
     setLoading(true);
     const endLocation = locationText.trim() || undefined;
     const isManual = locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '';
+    if (isManual && gpsCoords) {
+      api.post('/locations/correct', { ...gpsCoords, name: locationText.trim() }).catch(() => {});
+    }
     try {
       // Send cropped photo as base64 if available
       let endPhotoBase64 = null;
