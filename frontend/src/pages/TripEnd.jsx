@@ -101,6 +101,26 @@ export default function TripEnd() {
                         : 'bg-red-950 text-red-400 border-red-800';
   }
 
+  async function getLocation() {
+    return new Promise(resolve => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        try {
+          const r = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+            { headers: { 'User-Agent': 'YomNesiot/1.0' } }
+          );
+          const d = await r.json();
+          const a = d.address || {};
+          const road = a.road || a.pedestrian || a.footway || '';
+          const city = a.city || a.town || a.village || a.suburb || '';
+          resolve([road, city].filter(Boolean).join(', ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        } catch { resolve(`${lat.toFixed(5)}, ${lng.toFixed(5)}`); }
+      }, () => resolve(null), { timeout: 8000, maximumAge: 30000 });
+    });
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -108,6 +128,7 @@ export default function TripEnd() {
 
     setLoading(true);
     try {
+      const endLocation = await getLocation();
       // Send cropped photo as base64 if available
       let endPhotoBase64 = null;
       if (canvasRef.current) {
@@ -123,6 +144,7 @@ export default function TripEnd() {
         endKmOcr,
         endKmConfirmed: parseInt(endKm),
         endPhotoBase64,
+        endLocation,
       });
 
       if (data.warn) setWarn(data.warn);
@@ -176,6 +198,9 @@ export default function TripEnd() {
           <div className="text-slate-500 text-xs">
             משך {elapsedText} · {trip.start_km_confirmed?.toLocaleString()} ק״מ
           </div>
+          {trip.start_location && (
+            <div className="text-slate-500 text-xs mt-0.5">📍 {trip.start_location}</div>
+          )}
         </div>
 
         {/* Photo */}

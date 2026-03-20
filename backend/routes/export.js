@@ -33,6 +33,8 @@ router.get('/trips', requireAuth, requireAdmin, async (req, res) => {
          LPAD(EXTRACT(HOUR   FROM (t.end_time - t.start_time))::int::text, 1, '0') || ':' ||
          LPAD(EXTRACT(MINUTE FROM (t.end_time - t.start_time))::int::text, 2, '0')
        END                                                         AS "Duration (hh:mm)",
+       t.start_location                                            AS "Start Location",
+       t.end_location                                              AS "End Location",
        t.reason                                                    AS "Reason",
        t.notes                                                     AS "Notes",
        CASE WHEN t.discrepancy_flag THEN 'Yes' ELSE '' END        AS "Discrepancy Flag",

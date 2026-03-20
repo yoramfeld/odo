@@ -146,6 +146,11 @@ function TripsTab({ cars, drivers }) {
                     {new Date(t.start_time).toLocaleDateString('he-IL')}
                     {t.notes && <span className="ml-2 italic">{t.notes}</span>}
                   </div>
+                  {(t.start_location || t.end_location) && (
+                    <div className="text-slate-600 text-xs mt-0.5 truncate">
+                      📍 {t.start_location || '—'}{t.end_location ? ` → ${t.end_location}` : ''}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right flex-shrink-0">
                   {t.distance_km != null

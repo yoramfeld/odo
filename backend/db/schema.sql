@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS trips (
   -- Photo retention (null the bytea after 1 year)
   photo_expires_at      TIMESTAMPTZ,
 
+  start_location        TEXT,                -- Reverse-geocoded address at trip start
+  end_location          TEXT,                -- Reverse-geocoded address at trip end
+
   status                TEXT DEFAULT 'active' CHECK(status IN ('active', 'completed')),
   created_at            TIMESTAMPTZ DEFAULT NOW()
 );

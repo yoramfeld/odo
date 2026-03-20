@@ -120,16 +120,38 @@ export default function TripStart() {
     }
   }
 
+  async function getLocation() {
+    return new Promise(resolve => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        try {
+          const r = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+            { headers: { 'User-Agent': 'YomNesiot/1.0' } }
+          );
+          const d = await r.json();
+          const a = d.address || {};
+          const road = a.road || a.pedestrian || a.footway || '';
+          const city = a.city || a.town || a.village || a.suburb || '';
+          resolve([road, city].filter(Boolean).join(', ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        } catch { resolve(`${lat.toFixed(5)}, ${lng.toFixed(5)}`); }
+      }, () => resolve(null), { timeout: 8000, maximumAge: 30000 });
+    });
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
+      const startLocation = await getLocation();
       const { data } = await api.post('/trips/start', {
         carId: parseInt(carId),
         startKm: parseInt(startKm),
         reason,
         notes: notes || undefined,
+        startLocation,
       });
       navigate(`/trip/end/${data.id}`);
     } catch (err) {

@@ -26,6 +26,11 @@ function TripCard({ trip }) {
           )}
         </div>
         <div className="text-slate-400 text-sm truncate">{trip.reason}</div>
+        {(trip.start_location || trip.end_location) && (
+          <div className="text-slate-600 text-xs truncate">
+            📍 {trip.start_location || '—'}{trip.end_location ? ` → ${trip.end_location}` : ''}
+          </div>
+        )}
       </div>
       <div className="text-right flex-shrink-0">
         <div className="text-white font-medium">{dist}</div>

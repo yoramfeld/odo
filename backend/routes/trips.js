@@ -125,7 +125,7 @@ router.get('/car/:carId/last-end-km', requireAuth, async (req, res) => {
 
 // POST /api/trips/start
 router.post('/start', requireAuth, async (req, res) => {
-  const { carId, startKm, reason, notes } = req.body;
+  const { carId, startKm, reason, notes, startLocation } = req.body;
   if (!carId || startKm == null || !reason) {
     return res.status(400).json({ error: 'carId, startKm and reason are required' });
   }
@@ -152,10 +152,10 @@ router.post('/start', requireAuth, async (req, res) => {
 
   const { rows } = await db.query(
     `INSERT INTO trips (car_id, driver_id, start_km_confirmed, start_time, reason, notes,
-                        discrepancy_flag, discrepancy_delta)
-     VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7) RETURNING *`,
+                        discrepancy_flag, discrepancy_delta, start_location)
+     VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8) RETURNING *`,
     [carId, req.user.id, startKm, reason, notes || null,
-     discrepancy, discrepancy ? delta : null]
+     discrepancy, discrepancy ? delta : null, startLocation || null]
   );
 
   res.status(201).json(rows[0]);
@@ -163,7 +163,7 @@ router.post('/start', requireAuth, async (req, res) => {
 
 // PATCH /api/trips/:id/end
 router.patch('/:id/end', requireAuth, async (req, res) => {
-  const { endKmOcr, endKmConfirmed, endPhotoBase64 } = req.body;
+  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation } = req.body;
   if (endKmConfirmed == null) {
     return res.status(400).json({ error: 'endKmConfirmed is required' });
   }
@@ -199,11 +199,12 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
        status           = 'completed',
        speed_flag       = $5,
        avg_speed_kmh    = $6,
-       photo_expires_at = $7
-     WHERE id = $8 RETURNING *`,
+       photo_expires_at = $7,
+       end_location     = $8
+     WHERE id = $9 RETURNING *`,
     [endKmOcr || null, finalKm, photoBuffer, endTime,
      validation.speedFlag || false, validation.speed || null,
-     photoBuffer ? expiresAt : null, trip.id]
+     photoBuffer ? expiresAt : null, endLocation || null, trip.id]
   );
 
   // Update car's current_km
