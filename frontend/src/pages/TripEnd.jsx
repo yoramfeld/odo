@@ -87,7 +87,7 @@ export default function TripEnd() {
         setPreviewSrc(cropped.toDataURL('image/jpeg', 0.92));
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'OCR failed — please try again');
+      setError(err.response?.data?.error || 'שגיאה בקריאה — נסה שוב');
     } finally {
       setOcrLoading(false);
     }
@@ -104,7 +104,7 @@ export default function TripEnd() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    if (!endKm) { setError('Please take a photo first'); return; }
+    if (!endKm) { setError('אנא צלם תמונה תחילה'); return; }
 
     setLoading(true);
     try {
@@ -136,7 +136,7 @@ export default function TripEnd() {
         navigate('/');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to end trip');
+      setError(err.response?.data?.error || 'שגיאה בסיום נסיעה');
     } finally {
       setLoading(false);
     }
@@ -157,12 +157,12 @@ export default function TripEnd() {
     : null;
 
   return (
-    <div className="min-h-dvh flex flex-col max-w-lg mx-auto">
+    <div dir="rtl" className="min-h-dvh flex flex-col max-w-lg mx-auto">
 
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-800">
-        <button onClick={() => navigate('/')} className="text-slate-400 text-2xl leading-none">‹</button>
-        <h1 className="text-white font-bold text-lg">End Trip</h1>
+        <button onClick={() => navigate('/')} className="text-slate-400 text-2xl leading-none">›</button>
+        <h1 className="text-white font-bold text-lg">סיים נסיעה</h1>
       </div>
 
       <div className="flex-1 px-5 py-5 space-y-5">
@@ -174,14 +174,14 @@ export default function TripEnd() {
           </div>
           <div className="text-slate-400 text-sm">{trip.reason}</div>
           <div className="text-slate-500 text-xs">
-            Duration {elapsedText} · {trip.start_km_confirmed?.toLocaleString()} km
+            משך {elapsedText} · {trip.start_km_confirmed?.toLocaleString()} ק״מ
           </div>
         </div>
 
         {/* Photo */}
         <div>
           <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            Odometer photo
+            תמונת מד קילומטר
           </label>
 
           {/* Preview */}
@@ -202,7 +202,7 @@ export default function TripEnd() {
               className="w-full bg-slate-800 border border-slate-700 text-slate-300
                          font-semibold rounded-xl py-3 text-sm"
             >
-              📷 Camera
+              📷 מצלמה
             </button>
           )}
 
@@ -212,7 +212,7 @@ export default function TripEnd() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
               </svg>
-              Reading odometer…
+              קורא מד קילומטר…
             </div>
           )}
 
@@ -224,8 +224,8 @@ export default function TripEnd() {
         {endKm !== '' && !ocrLoading && (
           <div>
             <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              End odometer (km)
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs border ${badgeClass(confidence)}`}>
+              מד קילומטר סיום
+              <span className={`mr-2 px-2 py-0.5 rounded-full text-xs border ${badgeClass(confidence)}`}>
                 {confidence}
               </span>
             </label>
@@ -241,7 +241,7 @@ export default function TripEnd() {
             />
             {distance != null && (
               <p className="text-slate-400 text-sm mt-2">
-                Trip distance: <span className="text-white font-semibold">{distance} km</span>
+                מרחק נסיעה: <span className="text-white font-semibold">{distance} ק״מ</span>
               </p>
             )}
           </div>
@@ -267,7 +267,7 @@ export default function TripEnd() {
             className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-40
                        text-white font-bold rounded-2xl py-4 text-lg transition-colors"
           >
-            {loading ? 'Saving…' : 'End Trip ✓'}
+            {loading ? 'שומר…' : 'סיים נסיעה ✓'}
           </button>
         </form>
 

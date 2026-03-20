@@ -26,14 +26,14 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-slate-900">
+    <div dir="rtl" className="min-h-dvh flex flex-col items-center justify-center px-6 bg-slate-900">
       <div className="w-full max-w-sm">
 
         {/* Logo / title */}
         <div className="text-center mb-10">
           <div className="text-4xl mb-3">🚗</div>
-          <h1 className="text-2xl font-bold text-white">Fleet KM Logger</h1>
-          <p className="text-slate-400 text-sm mt-1">Sign in to continue</p>
+          <h1 className="text-2xl font-bold text-white">מד קילומטראז׳</h1>
+          <p className="text-slate-400 text-sm mt-1">כניסה למערכת</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -41,7 +41,7 @@ export default function Login() {
           {/* Phone */}
           <div>
             <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              Phone number
+              מספר טלפון
             </label>
             <input
               type="tel"
@@ -59,7 +59,7 @@ export default function Login() {
           {/* National ID */}
           <div>
             <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              National ID number
+              מספר תעודת זהות
             </label>
             <input
               type="password"
@@ -89,13 +89,13 @@ export default function Login() {
                        text-white font-semibold rounded-xl py-4 text-base
                        transition-colors mt-2"
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? 'מתחבר…' : 'כניסה'}
           </button>
 
         </form>
 
         <p className="text-center text-xs text-slate-600 mt-8">
-          No self-registration — contact your fleet manager
+          אין הרשמה עצמית — פנה למנהל הצי
         </p>
       </div>
     </div>

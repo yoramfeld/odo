@@ -133,7 +133,7 @@ export default function TripStart() {
       });
       navigate(`/trip/end/${data.id}`);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to start trip');
+      setError(err.response?.data?.error || 'שגיאה בהתחלת נסיעה');
     } finally {
       setLoading(false);
     }
@@ -142,12 +142,12 @@ export default function TripStart() {
   const selectedCar = cars.find(c => String(c.id) === carId);
 
   return (
-    <div className="min-h-dvh flex flex-col max-w-lg mx-auto">
+    <div dir="rtl" className="min-h-dvh flex flex-col max-w-lg mx-auto">
 
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-800">
-        <button onClick={() => navigate('/')} className="text-slate-400 text-2xl leading-none">‹</button>
-        <h1 className="text-white font-bold text-lg">Start Trip</h1>
+        <button onClick={() => navigate('/')} className="text-slate-400 text-2xl leading-none">›</button>
+        <h1 className="text-white font-bold text-lg">התחל נסיעה</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 px-5 py-5 space-y-5">
@@ -155,10 +155,10 @@ export default function TripStart() {
         {/* Car selector */}
         <div>
           <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            Vehicle
+            רכב
           </label>
           {carsLoading ? (
-            <div className="text-slate-500 text-sm">Loading vehicles…</div>
+            <div className="text-slate-500 text-sm">טוען רכבים…</div>
           ) : (
             <select
               value={carId}
@@ -167,7 +167,7 @@ export default function TripStart() {
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                          text-white text-base focus:outline-none focus:border-blue-500"
             >
-              <option value="">Select a vehicle…</option>
+              <option value="">בחר רכב…</option>
               {cars.map(c => (
                 <option key={c.id} value={c.id}>
                   {c.plate} — {c.make} {c.model} {c.year ? `(${c.year})` : ''}
@@ -181,11 +181,11 @@ export default function TripStart() {
         {carId && (
           <div>
             <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              Start odometer (km)
+              מד קילומטר התחלתי
             </label>
             {lastKm != null && (
               <p className="text-slate-500 text-xs mb-2">
-                Last recorded: <span className="text-slate-300">{lastKm.toLocaleString()} km</span>
+                אחרון מתועד: <span className="text-slate-300">{lastKm.toLocaleString()} ק״מ</span>
               </p>
             )}
 
@@ -246,13 +246,13 @@ export default function TripStart() {
         {carId && (
           <div>
             <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              Reason for trip
+              סיבת הנסיעה
             </label>
             <input
               type="text"
               value={reason}
               onChange={e => setReason(e.target.value)}
-              placeholder="e.g. Client visit, supplies pickup…"
+              placeholder="לדוגמה: ביקור לקוח, איסוף ציוד…"
               required
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                          text-white focus:outline-none focus:border-blue-500"
@@ -264,13 +264,13 @@ export default function TripStart() {
         {carId && (
           <div>
             <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              Notes <span className="normal-case text-slate-600">(optional)</span>
+              הערות <span className="normal-case text-slate-600">(אופציונלי)</span>
             </label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
-              placeholder="Any additional notes…"
+              placeholder="הערות נוספות…"
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                          text-white focus:outline-none focus:border-blue-500 resize-none"
             />
@@ -290,7 +290,7 @@ export default function TripStart() {
             className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40
                        text-white font-bold rounded-2xl py-4 text-lg transition-colors"
           >
-            {loading ? 'Starting…' : 'Start Trip →'}
+            {loading ? 'מתחיל…' : 'התחל נסיעה ←'}
           </button>
         )}
 

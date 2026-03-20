@@ -58,13 +58,13 @@ export default function DriverDashboard() {
   );
 
   return (
-    <div className="min-h-dvh flex flex-col max-w-lg mx-auto">
+    <div dir="rtl" className="min-h-dvh flex flex-col max-w-lg mx-auto">
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
         <div>
-          <h1 className="text-white font-bold text-lg leading-tight">Fleet KM Logger</h1>
-          <p className="text-slate-400 text-sm">Hello, {user?.name}</p>
+          <h1 className="text-white font-bold text-lg leading-tight">מד קילומטראז׳</h1>
+          <p className="text-slate-400 text-sm">שלום, {user?.name}</p>
         </div>
         <div className="flex items-center gap-3">
           {user?.role === 'admin' && (
@@ -72,11 +72,11 @@ export default function DriverDashboard() {
               onClick={() => navigate('/admin')}
               className="text-blue-400 text-sm font-medium"
             >
-              Admin
+              ניהול
             </button>
           )}
           <button onClick={logout} className="text-slate-500 text-sm">
-            Sign out
+            יציאה
           </button>
         </div>
       </div>
@@ -88,12 +88,12 @@ export default function DriverDashboard() {
           <div className="bg-blue-950 border border-blue-800 rounded-2xl p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-blue-400 uppercase tracking-widest mb-1">Active trip</div>
+                <div className="text-xs text-blue-400 uppercase tracking-widest mb-1">נסיעה פעילה</div>
                 <div className="text-white font-bold text-lg">
                   {activeTrip.plate} · {activeTrip.make} {activeTrip.model}
                 </div>
                 <div className="text-blue-300 text-sm mt-0.5">
-                  Started at {activeTrip.start_km_confirmed?.toLocaleString()} km
+                  התחיל ב־{activeTrip.start_km_confirmed?.toLocaleString()} ק״מ
                 </div>
                 <div className="text-slate-400 text-xs mt-0.5 truncate max-w-[220px]">
                   {activeTrip.reason}
@@ -102,9 +102,9 @@ export default function DriverDashboard() {
               <button
                 onClick={() => navigate(`/trip/end/${activeTrip.id}`)}
                 className="bg-green-600 hover:bg-green-500 text-white font-semibold
-                           rounded-xl px-4 py-3 text-sm flex-shrink-0 ml-3"
+                           rounded-xl px-4 py-3 text-sm flex-shrink-0 mr-3"
               >
-                End trip
+                סיים נסיעה
               </button>
             </div>
           </div>
@@ -117,14 +117,14 @@ export default function DriverDashboard() {
             className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold
                        rounded-2xl py-5 text-lg transition-colors"
           >
-            + Start New Trip
+            + התחל נסיעה חדשה
           </button>
         )}
 
         {/* Recent trips */}
         {trips.length > 0 && (
           <div>
-            <h2 className="text-xs text-slate-500 uppercase tracking-widest mb-3">Recent trips</h2>
+            <h2 className="text-xs text-slate-500 uppercase tracking-widest mb-3">נסיעות אחרונות</h2>
             <div className="bg-slate-800 rounded-2xl px-4">
               {trips.map(t => <TripCard key={t.id} trip={t} />)}
             </div>
@@ -133,7 +133,7 @@ export default function DriverDashboard() {
 
         {trips.length === 0 && !activeTrip && (
           <div className="text-center text-slate-600 py-10 text-sm">
-            No trips yet — start your first trip above.
+            אין נסיעות עדיין — התחל את נסיעתך הראשונה למעלה.
           </div>
         )}
 
