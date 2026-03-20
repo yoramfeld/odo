@@ -46,7 +46,7 @@ export default function Login() {
             <input
               type="tel"
               inputMode="tel"
-              placeholder="05X-XXXXXXX"
+              placeholder="05XXXXXXXX"
               value={phone}
               onChange={e => setPhone(e.target.value)}
               required
