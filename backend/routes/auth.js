@@ -10,10 +10,12 @@ const JWT_EXPIRY_DAYS = parseInt(process.env.JWT_EXPIRY_DAYS)       || 90;
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
-  const { phone, idNumber } = req.body;
-  if (!phone || !idNumber) {
+  const rawPhone = req.body.phone;
+  const { idNumber } = req.body;
+  if (!rawPhone || !idNumber) {
     return res.status(400).json({ error: 'Phone and ID number required' });
   }
+  const phone = rawPhone.replace(/[\s-]/g, '');
 
   // Rate limit check
   const window = new Date(Date.now() - LOCKOUT_MINUTES * 60 * 1000);
