@@ -301,7 +301,7 @@ function CarsTab() {
 
 function DriversTab() {
   const [drivers, setDrivers] = useState([]);
-  const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState(null); // driver id or 'new'
   const [form, setForm]       = useState({ name: '', phone: '', idNumber: '', role: 'driver' });
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
@@ -312,15 +312,31 @@ function DriversTab() {
     setDrivers(data);
   }
 
-  async function addDriver() {
+  function openNew() {
+    setForm({ name: '', phone: '', idNumber: '', role: 'driver' });
+    setEditing('new');
+    setError('');
+  }
+  function openEdit(d) {
+    setForm({ name: d.name, phone: d.phone, idNumber: '', role: d.role });
+    setEditing(d.id);
+    setError('');
+  }
+  function cancel() { setEditing(null); setError(''); }
+
+  async function save() {
     setSaving(true); setError('');
     try {
-      await api.post('/drivers', form);
+      if (editing === 'new') {
+        if (!form.idNumber) { setError('National ID is required'); setSaving(false); return; }
+        await api.post('/drivers', form);
+      } else {
+        await api.patch(`/drivers/${editing}`, form);
+      }
       await loadDrivers();
-      setShowAdd(false);
-      setForm({ name: '', phone: '', idNumber: '', role: 'driver' });
+      setEditing(null);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to add driver');
+      setError(err.response?.data?.error || 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -335,23 +351,25 @@ function DriversTab() {
 
   return (
     <div className="space-y-4">
-      <button onClick={() => { setShowAdd(true); setError(''); }}
+      <button onClick={openNew}
         className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold
                    rounded-xl py-3 text-sm transition-colors">
         + Add Driver
       </button>
 
-      {showAdd && (
+      {editing && (
         <SectionCard>
           <div className="p-4 space-y-3">
-            <h3 className="text-white font-semibold text-sm">New Driver</h3>
+            <h3 className="text-white font-semibold text-sm">
+              {editing === 'new' ? 'New Driver' : 'Edit Driver'}
+            </h3>
             <FieldRow label="Full name">
               <Input value={form.name} onChange={e => setF('name', e.target.value)} placeholder="Avi Cohen" />
             </FieldRow>
             <FieldRow label="Phone">
               <Input type="tel" value={form.phone} onChange={e => setF('phone', e.target.value)} placeholder="05X-XXXXXXX" />
             </FieldRow>
-            <FieldRow label="National ID">
+            <FieldRow label={editing === 'new' ? 'National ID' : 'New National ID (leave blank to keep)'}>
               <Input type="password" inputMode="numeric" value={form.idNumber}
                 onChange={e => setF('idNumber', e.target.value)} placeholder="••••••••" />
             </FieldRow>
@@ -366,11 +384,11 @@ function DriversTab() {
             {error && <p className="text-red-400 text-xs">{error}</p>}
             <p className="text-slate-600 text-xs">ID number is hashed immediately — never stored in plain text.</p>
             <div className="flex gap-2 pt-1">
-              <button onClick={() => setShowAdd(false)}
+              <button onClick={cancel}
                 className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2.5 text-sm">Cancel</button>
-              <button onClick={addDriver} disabled={saving}
+              <button onClick={save} disabled={saving}
                 className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold rounded-xl py-2.5 text-sm">
-                {saving ? 'Saving…' : 'Add Driver'}
+                {saving ? 'Saving…' : editing === 'new' ? 'Add Driver' : 'Save'}
               </button>
             </div>
           </div>
@@ -394,16 +412,20 @@ function DriversTab() {
                 {d.last_login_at && ` · last login ${new Date(d.last_login_at).toLocaleDateString('he-IL')}`}
               </div>
             </div>
-            <button
-              onClick={() => toggleActive(d.id, !d.active)}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0 ${
-                d.active
-                  ? 'bg-red-950 text-red-400'
-                  : 'bg-green-950 text-green-400'
-              }`}
-            >
-              {d.active ? 'Deactivate' : 'Activate'}
-            </button>
+            <div className="flex gap-2 flex-shrink-0">
+              <button onClick={() => openEdit(d)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-950 text-blue-400">
+                Edit
+              </button>
+              <button
+                onClick={() => toggleActive(d.id, !d.active)}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg ${
+                  d.active ? 'bg-red-950 text-red-400' : 'bg-green-950 text-green-400'
+                }`}
+              >
+                {d.active ? 'Deactivate' : 'Activate'}
+              </button>
+            </div>
           </div>
         ))}
       </SectionCard>

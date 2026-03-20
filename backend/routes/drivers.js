@@ -44,6 +44,34 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// PATCH /api/drivers/:id  — edit name, phone, role, and optionally reset ID
+router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { name, phone, role, idNumber } = req.body;
+  if (!name || !phone) return res.status(400).json({ error: 'name and phone are required' });
+  if (role && !['driver', 'admin'].includes(role)) {
+    return res.status(400).json({ error: 'role must be driver or admin' });
+  }
+
+  let query, params;
+  if (idNumber) {
+    const hash = await bcrypt.hash(idNumber, COST);
+    query = 'UPDATE users SET name=$1, phone=$2, role=$3, id_number_hash=$4 WHERE id=$5 RETURNING id, name, phone, role, active';
+    params = [name, phone, role || 'driver', hash, req.params.id];
+  } else {
+    query = 'UPDATE users SET name=$1, phone=$2, role=$3 WHERE id=$4 RETURNING id, name, phone, role, active';
+    params = [name, phone, role || 'driver', req.params.id];
+  }
+
+  try {
+    const { rows } = await db.query(query, params);
+    if (!rows[0]) return res.status(404).json({ error: 'User not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'Phone number already registered' });
+    throw err;
+  }
+});
+
 // PATCH /api/drivers/:id/active  — activate or deactivate
 router.patch('/:id/active', requireAuth, requireAdmin, async (req, res) => {
   const { active } = req.body;
