@@ -25,7 +25,11 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-startCleanupJob();
+// Local dev only — cron + listen don't apply in Vercel serverless
+if (require.main === module) {
+  startCleanupJob();
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => console.log(`Fleet Logger backend running on :${PORT}`));
+}
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Fleet Logger backend running on :${PORT}`));
+module.exports = app;
