@@ -45,11 +45,10 @@ function TripCard({ trip }) {
       <div className="flex items-center gap-3 text-xs text-slate-500 min-w-0">
         {dist && <span className="text-white font-medium flex-shrink-0">{dist}</span>}
         {dur  && <span className="flex-shrink-0">{dur}</span>}
-        <span className="text-slate-300 text-sm truncate">{trip.reason}</span>
+        <span className="text-slate-300 text-sm truncate min-w-0">{trip.reason}</span>
         {(trip.start_location || trip.end_location) && (
-          <span className="truncate text-slate-600">
-            📍 {trip.start_location || '—'}
-            {trip.end_location ? ` → ${trip.end_location}` : ''}
+          <span className="flex-shrink-0 text-slate-600">
+            📍 {trip.start_location || trip.end_location}
           </span>
         )}
       </div>
