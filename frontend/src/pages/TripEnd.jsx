@@ -15,7 +15,6 @@ export default function TripEnd() {
   const [loading, setLoading]   = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
 
-  const fileRef    = useRef();
   const cameraRef  = useRef();
   const canvasRef  = useRef(null); // holds resized canvas for crop
 
@@ -196,26 +195,16 @@ export default function TripEnd() {
             />
           )}
 
-          {/* Camera buttons */}
+          {/* Camera button */}
           {!ocrLoading && (
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => cameraRef.current.click()}
-                className="flex-1 bg-slate-800 border border-slate-700 text-slate-300
-                           font-semibold rounded-xl py-3 text-sm"
-              >
-                📷 Camera
-              </button>
-              <button
-                type="button"
-                onClick={() => fileRef.current.click()}
-                className="flex-1 bg-slate-800 border border-slate-700 text-slate-300
-                           font-semibold rounded-xl py-3 text-sm"
-              >
-                🖼 Gallery
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => cameraRef.current.click()}
+              className="w-full bg-slate-800 border border-slate-700 text-slate-300
+                         font-semibold rounded-xl py-3 text-sm"
+            >
+              📷 Camera
+            </button>
           )}
 
           {ocrLoading && (
@@ -228,8 +217,8 @@ export default function TripEnd() {
             </div>
           )}
 
-          <input ref={fileRef}   type="file" accept="image/*"                          className="hidden" onChange={e => handleFile(e.target.files[0])} />
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment"    className="hidden" onChange={e => handleFile(e.target.files[0])} />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+            className="hidden" onChange={e => handleFile(e.target.files[0])} />
         </div>
 
         {/* KM result */}
