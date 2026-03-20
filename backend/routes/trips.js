@@ -80,6 +80,8 @@ router.get('/', requireAuth, async (req, res) => {
             t.reason, t.notes, t.status,
             t.discrepancy_flag, t.discrepancy_delta,
             t.speed_flag, t.avg_speed_kmh,
+            t.start_location, t.start_location_manual,
+            t.end_location, t.end_location_manual,
             (t.end_km_confirmed - t.start_km_confirmed) AS distance_km
      FROM trips t
      JOIN cars  c ON c.id = t.car_id
