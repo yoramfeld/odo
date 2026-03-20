@@ -182,7 +182,7 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
 
   if (validation.error) {
     await logError(req, 422, validation.error,
-      `trip ${trip.id} · car ${trip.car_id} · start ${trip.start_km_confirmed} → submitted ${endKmConfirmed}`);
+      `driver: ${req.user.name} · trip ${trip.id} · car ${trip.car_id} · start ${trip.start_km_confirmed} → submitted ${endKmConfirmed}`);
     return res.status(422).json({ error: validation.error });
   }
 
