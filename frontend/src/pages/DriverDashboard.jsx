@@ -28,7 +28,8 @@ function TripCard({ trip }) {
         <div className="text-slate-400 text-sm truncate">{trip.reason}</div>
         {(trip.start_location || trip.end_location) && (
           <div className="text-slate-600 text-xs truncate">
-            📍 {trip.start_location || '—'}{trip.end_location ? ` → ${trip.end_location}` : ''}
+            📍 {trip.start_location || '—'}{trip.start_location_manual ? ' (ידני)' : ''}
+            {trip.end_location ? ` → ${trip.end_location}${trip.end_location_manual ? ' (ידני)' : ''}` : ''}
           </div>
         )}
       </div>

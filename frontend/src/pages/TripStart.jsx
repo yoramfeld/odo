@@ -2,6 +2,26 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 
+async function getLocationStr() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      try {
+        const r = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+          { headers: { 'User-Agent': 'YomNesiot/1.0' } }
+        );
+        const d = await r.json();
+        const a = d.address || {};
+        const road = a.road || a.pedestrian || a.footway || '';
+        const city = a.city || a.town || a.village || a.suburb || '';
+        resolve([road, city].filter(Boolean).join(', ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      } catch { resolve(`${lat.toFixed(5)}, ${lng.toFixed(5)}`); }
+    }, () => resolve(null), { timeout: 8000, maximumAge: 30000 });
+  });
+}
+
 export default function TripStart() {
   const navigate = useNavigate();
 
@@ -15,12 +35,24 @@ export default function TripStart() {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [carsLoading, setCarsLoading] = useState(true);
-  const [ocrLoading, setOcrLoading]   = useState(false);
-  const [previewSrc, setPreviewSrc]   = useState(null);
-  const [confidence, setConf]         = useState(null);
+  const [ocrLoading, setOcrLoading]       = useState(false);
+  const [previewSrc, setPreviewSrc]       = useState(null);
+  const [confidence, setConf]             = useState(null);
+  const [locationText, setLocationText]   = useState('');
+  const [detectedLoc, setDetectedLoc]     = useState(null);
+  const [locationLoading, setLocLoading]  = useState(true);
 
   const cameraRef = useRef();
   const canvasRef = useRef(null);
+
+  // Get location on mount
+  useEffect(() => {
+    getLocationStr().then(loc => {
+      setDetectedLoc(loc);
+      setLocationText(loc || '');
+      setLocLoading(false);
+    });
+  }, []);
 
   // Load cars
   useEffect(() => {
@@ -120,38 +152,19 @@ export default function TripStart() {
     }
   }
 
-  async function getLocation() {
-    return new Promise(resolve => {
-      if (!navigator.geolocation) { resolve(null); return; }
-      navigator.geolocation.getCurrentPosition(async pos => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        try {
-          const r = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-            { headers: { 'User-Agent': 'YomNesiot/1.0' } }
-          );
-          const d = await r.json();
-          const a = d.address || {};
-          const road = a.road || a.pedestrian || a.footway || '';
-          const city = a.city || a.town || a.village || a.suburb || '';
-          resolve([road, city].filter(Boolean).join(', ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-        } catch { resolve(`${lat.toFixed(5)}, ${lng.toFixed(5)}`); }
-      }, () => resolve(null), { timeout: 8000, maximumAge: 30000 });
-    });
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
+    const isManual = locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '';
     try {
-      const startLocation = await getLocation();
       const { data } = await api.post('/trips/start', {
         carId: parseInt(carId),
         startKm: parseInt(startKm),
         reason,
         notes: notes || undefined,
-        startLocation,
+        startLocation: locationText.trim() || undefined,
+        startLocationManual: isManual,
       });
       navigate(`/trip/end/${data.id}`);
     } catch (err) {
@@ -295,6 +308,27 @@ export default function TripStart() {
               placeholder="הערות נוספות…"
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                          text-white focus:outline-none focus:border-blue-500 resize-none"
+            />
+          </div>
+        )}
+
+        {/* Location */}
+        {carId && (
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+              מיקום יציאה
+              {!locationLoading && locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
+                <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
+              )}
+            </label>
+            <input
+              type="text"
+              value={locationLoading ? '' : locationText}
+              onChange={e => setLocationText(e.target.value)}
+              placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת ידנית…'}
+              disabled={locationLoading}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                         text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
             />
           </div>
         )}

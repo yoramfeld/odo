@@ -2,6 +2,26 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
 
+async function getLocationStr() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      try {
+        const r = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+          { headers: { 'User-Agent': 'YomNesiot/1.0' } }
+        );
+        const d = await r.json();
+        const a = d.address || {};
+        const road = a.road || a.pedestrian || a.footway || '';
+        const city = a.city || a.town || a.village || a.suburb || '';
+        resolve([road, city].filter(Boolean).join(', ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      } catch { resolve(`${lat.toFixed(5)}, ${lng.toFixed(5)}`); }
+    }, () => resolve(null), { timeout: 8000, maximumAge: 30000 });
+  });
+}
+
 export default function TripEnd() {
   const { tripId } = useParams();
   const navigate   = useNavigate();
@@ -13,13 +33,21 @@ export default function TripEnd() {
   const [warn, setWarn]         = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
-  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrLoading, setOcrLoading]       = useState(false);
+  const [locationText, setLocationText]   = useState('');
+  const [detectedLoc, setDetectedLoc]     = useState(null);
+  const [locationLoading, setLocLoading]  = useState(true);
 
   const cameraRef  = useRef();
-  const canvasRef  = useRef(null); // holds resized canvas for crop
+  const canvasRef  = useRef(null);
 
   useEffect(() => {
     api.get(`/trips/${tripId}`).then(res => setTrip(res.data));
+    getLocationStr().then(loc => {
+      setDetectedLoc(loc);
+      setLocationText(loc || '');
+      setLocLoading(false);
+    });
   }, [tripId]);
 
   // ── Image processing (same as POC) ──────────────────────────────────────
@@ -101,34 +129,15 @@ export default function TripEnd() {
                         : 'bg-red-950 text-red-400 border-red-800';
   }
 
-  async function getLocation() {
-    return new Promise(resolve => {
-      if (!navigator.geolocation) { resolve(null); return; }
-      navigator.geolocation.getCurrentPosition(async pos => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        try {
-          const r = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-            { headers: { 'User-Agent': 'YomNesiot/1.0' } }
-          );
-          const d = await r.json();
-          const a = d.address || {};
-          const road = a.road || a.pedestrian || a.footway || '';
-          const city = a.city || a.town || a.village || a.suburb || '';
-          resolve([road, city].filter(Boolean).join(', ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-        } catch { resolve(`${lat.toFixed(5)}, ${lng.toFixed(5)}`); }
-      }, () => resolve(null), { timeout: 8000, maximumAge: 30000 });
-    });
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     if (!endKm) { setError('אנא צלם תמונה תחילה'); return; }
 
     setLoading(true);
+    const endLocation = locationText.trim() || undefined;
+    const isManual = locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '';
     try {
-      const endLocation = await getLocation();
       // Send cropped photo as base64 if available
       let endPhotoBase64 = null;
       if (canvasRef.current) {
@@ -145,6 +154,7 @@ export default function TripEnd() {
         endKmConfirmed: parseInt(endKm),
         endPhotoBase64,
         endLocation,
+        endLocationManual: isManual,
       });
 
       if (data.warn) setWarn(data.warn);
@@ -249,6 +259,25 @@ export default function TripEnd() {
             )}
           </div>
         )}
+
+        {/* End location */}
+        <div>
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+            מיקום סיום
+            {!locationLoading && locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
+              <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
+            )}
+          </label>
+          <input
+            type="text"
+            value={locationLoading ? '' : locationText}
+            onChange={e => setLocationText(e.target.value)}
+            placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת ידנית…'}
+            disabled={locationLoading}
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                       text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
+          />
+        </div>
 
         {warn && (
           <div className="bg-amber-950 border border-amber-800 text-amber-400 text-sm rounded-xl px-4 py-3">

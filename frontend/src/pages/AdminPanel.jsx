@@ -148,7 +148,8 @@ function TripsTab({ cars, drivers }) {
                   </div>
                   {(t.start_location || t.end_location) && (
                     <div className="text-slate-600 text-xs mt-0.5 truncate">
-                      📍 {t.start_location || '—'}{t.end_location ? ` → ${t.end_location}` : ''}
+                      📍 {t.start_location || '—'}{t.start_location_manual ? ' (ידני)' : ''}
+                      {t.end_location ? ` → ${t.end_location}${t.end_location_manual ? ' (ידני)' : ''}` : ''}
                     </div>
                   )}
                 </div>
