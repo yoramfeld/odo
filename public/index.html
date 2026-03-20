@@ -347,19 +347,18 @@
     confBadge.className   = 'badge ' + badgeClass(currentConf);
     resultDiv.style.display = 'block';
     preview.classList.add('compact');
-    if (result?.bbox) cropPreview(result.bbox);
+    if (result?.crop) cropPreview(result.crop);
   }
 
-  function cropPreview(bbox) {
+  function cropPreview(c) {
     if (!resizedCanvas) return;
-    const [bx, by, bw, bh] = bbox;
-    const pad = 0.05;
+    const pad = 0.04;
     const iw = resizedCanvas.width;
     const ih = resizedCanvas.height;
-    const x = Math.max(0, (bx - pad)) * iw;
-    const y = Math.max(0, (by - pad)) * ih;
-    const w = Math.min(iw - x, (bw + pad * 2) * iw);
-    const h = Math.min(ih - y, (bh + pad * 2) * ih);
+    const x = Math.max(0, (c.left - pad)) * iw;
+    const y = Math.max(0, (c.top  - pad)) * ih;
+    const w = Math.min(iw, (c.right  + pad) * iw) - x;
+    const h = Math.min(ih, (c.bottom + pad) * ih) - y;
     const crop = document.createElement('canvas');
     crop.width  = w;
     crop.height = h;

@@ -12,10 +12,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 const SIMPLE_PROMPT = `This is a car odometer display.
 Read the total km value shown.
 Return ONLY valid JSON with no markdown, no explanation:
-{"km": 45312, "confidence": "high", "bbox": [0.1, 0.35, 0.8, 0.25]}
-bbox is [x, y, width, height] as fractions of the image (0–1), tightly around the odometer digits.
+{"km": 45312, "confidence": "high", "crop": {"top": 0.38, "bottom": 0.62, "left": 0.08, "right": 0.92}}
+crop defines the rectangle containing ONLY the km digits (not the full dashboard).
+top/bottom/left/right are fractions of image height/width from the top-left corner (0=edge, 1=opposite edge).
 Confidence is "high" if clearly readable, "low" if uncertain.
-If unreadable return {"km": null, "confidence": "none", "bbox": null}`;
+If unreadable return {"km": null, "confidence": "none", "crop": null}`;
 
 function buildContextPrompt(prefixDigits) {
   return `This is a car odometer display.
@@ -23,10 +24,11 @@ The odometer reading starts with the digits: ${prefixDigits}
 Use this as context to resolve any ambiguity in the remaining digits.
 Read the total km value shown.
 Return ONLY valid JSON with no markdown, no explanation:
-{"km": 45312, "confidence": "high", "bbox": [0.1, 0.35, 0.8, 0.25]}
-bbox is [x, y, width, height] as fractions of the image (0–1), tightly around the odometer digits.
+{"km": 45312, "confidence": "high", "crop": {"top": 0.38, "bottom": 0.62, "left": 0.08, "right": 0.92}}
+crop defines the rectangle containing ONLY the km digits (not the full dashboard).
+top/bottom/left/right are fractions of image height/width from the top-left corner (0=edge, 1=opposite edge).
 Confidence is "high" if clearly readable, "low" if uncertain.
-If unreadable return {"km": null, "confidence": "none", "bbox": null}`;
+If unreadable return {"km": null, "confidence": "none", "crop": null}`;
 }
 
 function parseClaudeJson(text) {
