@@ -67,13 +67,23 @@ function TripsTab({ cars, drivers }) {
     return true;
   });
 
-  function exportXlsx() {
+  async function exportXlsx() {
     const params = new URLSearchParams();
     if (filters.from)     params.set('from', filters.from);
     if (filters.to)       params.set('to', filters.to);
     if (filters.carId)    params.set('carId', filters.carId);
     if (filters.driverId) params.set('driverId', filters.driverId);
-    window.location.href = `/api/export/trips?${params}`;
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/export/trips?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fleet-trips-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function set(key, val) { setFilters(f => ({ ...f, [key]: val })); }
