@@ -29,6 +29,10 @@ router.get('/trips', requireAuth, requireAdmin, async (req, res) => {
        t.start_km_confirmed                                        AS "Start KM",
        t.end_km_confirmed                                          AS "End KM",
        (t.end_km_confirmed - t.start_km_confirmed)                AS "Distance (km)",
+       CASE WHEN t.end_time IS NOT NULL THEN
+         LPAD(EXTRACT(HOUR   FROM (t.end_time - t.start_time))::int::text, 1, '0') || ':' ||
+         LPAD(EXTRACT(MINUTE FROM (t.end_time - t.start_time))::int::text, 2, '0')
+       END                                                         AS "Duration (hh:mm)",
        t.reason                                                    AS "Reason",
        t.notes                                                     AS "Notes",
        CASE WHEN t.discrepancy_flag THEN 'Yes' ELSE '' END        AS "Discrepancy Flag",
