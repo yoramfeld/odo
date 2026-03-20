@@ -12,7 +12,7 @@ function fmtDuration(start, end) {
 
 function TripCard({ trip }) {
   const date = new Date(trip.start_time).toLocaleDateString('he-IL');
-  const dist = trip.distance_km != null ? `${trip.distance_km} km` : '—';
+  const dist = trip.distance_km != null ? `${trip.distance_km} ק״מ` : '—';
   const dur  = fmtDuration(trip.start_time, trip.end_time);
 
   return (

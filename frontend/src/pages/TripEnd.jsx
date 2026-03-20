@@ -229,9 +229,23 @@ export default function TripEnd() {
 
         {/* Photo */}
         <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            סיימת? צלם את מד הק״מ
-          </label>
+          <button type="button" onClick={() => !ocrLoading && cameraRef.current.click()}
+            className="flex items-center gap-2 mb-2 w-full">
+            {ocrLoading ? (
+              <>
+                <span className="text-slate-400 text-xs uppercase tracking-widest">קורא מד קילומטר…</span>
+                <svg className="animate-spin w-4 h-4 text-slate-400 mr-auto" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+              </>
+            ) : (
+              <>
+                <span className="text-slate-400 text-xs uppercase tracking-widest">סיימת? צלם את מד הק״מ</span>
+                <span className="text-lg mr-auto">📷</span>
+              </>
+            )}
+          </button>
 
           {/* Preview */}
           {previewSrc && (
@@ -239,12 +253,31 @@ export default function TripEnd() {
               src={previewSrc}
               alt="odometer"
               className="w-full rounded-xl mb-3 object-contain bg-black"
-              style={{ maxHeight: previewSrc ? '35dvh' : undefined }}
+              style={{ maxHeight: '35dvh' }}
             />
           )}
 
           <input ref={cameraRef} type="file" accept="image/*" capture="environment"
             className="hidden" onChange={e => handleFile(e.target.files[0])} />
+
+          {/* End location — right below camera */}
+          <div className="mt-3">
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+              מיקום סיום
+              {!locationLoading && locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
+                <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
+              )}
+            </label>
+            <input
+              type="text"
+              value={locationLoading ? '' : locationText}
+              onChange={e => setLocationText(e.target.value)}
+              placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת ידנית…'}
+              disabled={locationLoading}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                         text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
+            />
+          </div>
         </div>
 
         {/* KM result */}
@@ -273,25 +306,6 @@ export default function TripEnd() {
             )}
           </div>
         )}
-
-        {/* End location */}
-        <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            מיקום סיום
-            {!locationLoading && locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
-              <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
-            )}
-          </label>
-          <input
-            type="text"
-            value={locationLoading ? '' : locationText}
-            onChange={e => setLocationText(e.target.value)}
-            placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת ידנית…'}
-            disabled={locationLoading}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                       text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
-          />
-        </div>
 
         {warn && (
           <div className="bg-amber-950 border border-amber-800 text-amber-400 text-sm rounded-xl px-4 py-3">
@@ -324,16 +338,7 @@ export default function TripEnd() {
             >
               {loading ? 'שומר…' : 'סיים נסיעה ✓'}
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => cameraRef.current.click()}
-              className="w-full bg-slate-700 hover:bg-slate-600 text-white
-                         font-bold rounded-2xl py-4 text-lg transition-colors"
-            >
-              📷 מצלמה
-            </button>
-          )}
+          ) : null}
         </form>
 
       </div>
