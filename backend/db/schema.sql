@@ -61,6 +61,17 @@ CREATE TABLE IF NOT EXISTS login_attempts (
   success      BOOLEAN DEFAULT FALSE
 );
 
+CREATE TABLE IF NOT EXISTS error_logs (
+  id           SERIAL PRIMARY KEY,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  method       TEXT,
+  path         TEXT,
+  status_code  INTEGER,
+  message      TEXT,
+  stack        TEXT,
+  user_id      INTEGER REFERENCES users(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_login_attempts_phone ON login_attempts(phone, attempted_at);
 CREATE INDEX IF NOT EXISTS idx_trips_car_id        ON trips(car_id);
 CREATE INDEX IF NOT EXISTS idx_trips_driver_id     ON trips(driver_id);

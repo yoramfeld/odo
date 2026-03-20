@@ -405,9 +405,73 @@ function DriversTab() {
   );
 }
 
+// ── Errors tab ─────────────────────────────────────────────────────────────
+
+function ErrorsTab() {
+  const [errors, setErrors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  function load() {
+    setLoading(true);
+    api.get('/errors').then(r => setErrors(r.data)).finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function clearAll() {
+    if (!window.confirm('Clear all error logs?')) return;
+    await api.delete('/errors');
+    setErrors([]);
+  }
+
+  if (loading) return <div className="text-slate-500 text-sm text-center py-8">Loading…</div>;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <span className="text-slate-400 text-xs">{errors.length} error{errors.length !== 1 ? 's' : ''}</span>
+        <div className="flex gap-2">
+          <button onClick={load} className="text-xs text-blue-400">Refresh</button>
+          {errors.length > 0 && (
+            <button onClick={clearAll} className="text-xs text-red-400">Clear all</button>
+          )}
+        </div>
+      </div>
+      <SectionCard>
+        {errors.length === 0 ? (
+          <div className="text-slate-500 text-sm text-center py-8">No errors logged</div>
+        ) : errors.map(e => (
+          <div key={e.id} className="px-4 py-3 border-b border-slate-700 last:border-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge color="red">{e.status_code ?? 500}</Badge>
+                  <span className="text-slate-300 text-xs font-mono">{e.method} {e.path}</span>
+                  {e.user_name && <span className="text-slate-500 text-xs">{e.user_name}</span>}
+                </div>
+                <div className="text-red-400 text-sm mt-1">{e.message}</div>
+                {e.stack && (
+                  <details className="mt-1">
+                    <summary className="text-slate-600 text-xs cursor-pointer">Stack trace</summary>
+                    <pre className="text-slate-500 text-xs mt-1 whitespace-pre-wrap break-all">{e.stack}</pre>
+                  </details>
+                )}
+              </div>
+              <div className="text-slate-600 text-xs flex-shrink-0">
+                {new Date(e.created_at).toLocaleDateString('he-IL')}<br/>
+                {new Date(e.created_at).toLocaleTimeString('he-IL')}
+              </div>
+            </div>
+          </div>
+        ))}
+      </SectionCard>
+    </div>
+  );
+}
+
 // ── Admin Panel ────────────────────────────────────────────────────────────
 
-const TABS = ['Trips', 'Cars', 'Drivers'];
+const TABS = ['Trips', 'Cars', 'Drivers', 'Errors'];
 
 export default function AdminPanel() {
   const { logout } = useAuth();
@@ -452,6 +516,7 @@ export default function AdminPanel() {
         {tab === 'Trips'   && <TripsTab cars={cars} drivers={drivers} />}
         {tab === 'Cars'    && <CarsTab />}
         {tab === 'Drivers' && <DriversTab />}
+        {tab === 'Errors'  && <ErrorsTab />}
       </div>
 
     </div>

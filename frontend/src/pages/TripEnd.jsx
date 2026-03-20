@@ -181,7 +181,7 @@ export default function TripEnd() {
         {/* Photo */}
         <div>
           <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            תמונת מד קילומטר
+            סיימת? צלם את מד הק״מ
           </label>
 
           {/* Preview */}
