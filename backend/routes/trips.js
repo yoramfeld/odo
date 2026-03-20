@@ -3,6 +3,16 @@ const db     = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/roles');
 
+async function logError(req, status, message, extra = '') {
+  try {
+    await db.query(
+      `INSERT INTO error_logs (method, path, status_code, message, user_id)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [req.method, req.path, status, extra ? `${message} — ${extra}` : message, req.user?.id ?? null]
+    );
+  } catch (_) {}
+}
+
 const MAX_TRIP_KM   = parseInt(process.env.OCR_MAX_TRIP_KM)  || 100;
 const WARN_TRIP_KM  = parseInt(process.env.OCR_WARN_TRIP_KM) || 50;
 const KM_TOLERANCE  = parseInt(process.env.OCR_KM_TOLERANCE)  || 5;
@@ -170,7 +180,11 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
   const endTime = new Date();
   const validation = validateEndKm(trip.start_km_confirmed, trip.start_time, endKmConfirmed, endTime);
 
-  if (validation.error) return res.status(422).json({ error: validation.error });
+  if (validation.error) {
+    await logError(req, 422, validation.error,
+      `trip ${trip.id} · car ${trip.car_id} · start ${trip.start_km_confirmed} → submitted ${endKmConfirmed}`);
+    return res.status(422).json({ error: validation.error });
+  }
 
   const finalKm = validation.corrected ?? endKmConfirmed;
   const photoBuffer = endPhotoBase64 ? Buffer.from(endPhotoBase64, 'base64') : null;
