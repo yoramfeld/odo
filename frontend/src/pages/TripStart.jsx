@@ -196,25 +196,35 @@ export default function TripStart() {
                 style={{ maxHeight: '30dvh' }} />
             )}
 
-            {/* Camera button */}
-            {!ocrLoading ? (
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+              className="hidden" onChange={e => handleFile(e.target.files[0])} />
+
+            <div className="relative">
+              <input
+                type="number"
+                inputMode="numeric"
+                value={startKm}
+                onChange={e => handleKmChange(e.target.value)}
+                required
+                min={0}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pr-12
+                           text-white text-2xl font-bold focus:outline-none focus:border-blue-500
+                           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
+                           [&::-webkit-inner-spin-button]:appearance-none"
+              />
               <button type="button" onClick={() => cameraRef.current.click()}
-                className="w-full bg-slate-800 border border-slate-700 text-slate-300
-                           font-semibold rounded-xl py-3 text-sm mb-3">
-                📷 {previewSrc ? 'Retake' : 'Verify with camera'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl leading-none">
+                {ocrLoading
+                  ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                  : '📷'}
               </button>
-            ) : (
-              <div className="flex items-center gap-2 text-slate-400 text-sm py-2 mb-3">
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                </svg>
-                Reading odometer…
-              </div>
-            )}
+            </div>
 
             {confidence && (
-              <p className="text-xs mb-2">
+              <p className="text-xs mt-1.5">
                 <span className={`px-2 py-0.5 rounded-full border text-xs
                   ${confidence === 'high' ? 'bg-green-950 text-green-400 border-green-800'
                   : confidence === 'low'  ? 'bg-amber-950 text-amber-400 border-amber-800'
@@ -223,22 +233,6 @@ export default function TripStart() {
                 </span>
               </p>
             )}
-
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment"
-              className="hidden" onChange={e => handleFile(e.target.files[0])} />
-
-            <input
-              type="number"
-              inputMode="numeric"
-              value={startKm}
-              onChange={e => handleKmChange(e.target.value)}
-              required
-              min={0}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                         text-white text-2xl font-bold focus:outline-none focus:border-blue-500
-                         [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
-                         [&::-webkit-inner-spin-button]:appearance-none"
-            />
             {warn && (
               <div className="mt-2 bg-amber-950 border border-amber-800 text-amber-400
                               text-sm rounded-xl px-4 py-3">
