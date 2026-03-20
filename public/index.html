@@ -343,6 +343,25 @@
     confBadge.className   = 'badge ' + badgeClass(currentConf);
     resultDiv.style.display = 'block';
     preview.classList.add('compact');
+    if (result?.bbox) cropPreview(result.bbox);
+  }
+
+  function cropPreview(bbox) {
+    const img = new Image();
+    img.onload = () => {
+      const [bx, by, bw, bh] = bbox;
+      const pad = 0.05; // 5% padding around the digits
+      const x = Math.max(0, bx - pad) * img.width;
+      const y = Math.max(0, by - pad) * img.height;
+      const w = Math.min(1, bw + pad * 2) * img.width;
+      const h = Math.min(1, bh + pad * 2) * img.height;
+      const canvas = document.createElement('canvas');
+      canvas.width  = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
+      preview.src = canvas.toDataURL('image/jpeg', 0.92);
+    };
+    img.src = preview.src;
   }
 
   function reset() {

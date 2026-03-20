@@ -11,16 +11,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Inline the same handler as api/ocr.js (CommonJS compatible)
 const SIMPLE_PROMPT = `This is a car odometer display.
 Read the total km value shown.
-Return ONLY valid JSON with no markdown, no explanation: {"km": 45312, "confidence": "high"}
-Confidence is "high" if clearly readable, "low" if uncertain, return {"km": null, "confidence": "none"} if unreadable.`;
+Return ONLY valid JSON with no markdown, no explanation:
+{"km": 45312, "confidence": "high", "bbox": [0.1, 0.35, 0.8, 0.25]}
+bbox is [x, y, width, height] as fractions of the image (0–1), tightly around the odometer digits.
+Confidence is "high" if clearly readable, "low" if uncertain.
+If unreadable return {"km": null, "confidence": "none", "bbox": null}`;
 
 function buildContextPrompt(prefixDigits) {
   return `This is a car odometer display.
 The odometer reading starts with the digits: ${prefixDigits}
 Use this as context to resolve any ambiguity in the remaining digits.
 Read the total km value shown.
-Return ONLY valid JSON with no markdown, no explanation: {"km": 45312, "confidence": "high"}
-Confidence is "high" if clearly readable, "low" if uncertain, return {"km": null, "confidence": "none"} if unreadable.`;
+Return ONLY valid JSON with no markdown, no explanation:
+{"km": 45312, "confidence": "high", "bbox": [0.1, 0.35, 0.8, 0.25]}
+bbox is [x, y, width, height] as fractions of the image (0–1), tightly around the odometer digits.
+Confidence is "high" if clearly readable, "low" if uncertain.
+If unreadable return {"km": null, "confidence": "none", "bbox": null}`;
 }
 
 function parseClaudeJson(text) {
@@ -60,7 +66,7 @@ app.post('/api/ocr', async (req, res) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 100,
+        max_tokens: 150,
         messages: [{
           role: 'user',
           content: [
