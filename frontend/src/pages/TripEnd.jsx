@@ -242,7 +242,7 @@ export default function TripEnd() {
             ) : (
               <>
                 <span className="text-slate-400 text-xs uppercase tracking-widest">סיימת? צלם את מד הק״מ</span>
-                <span className="text-lg mr-auto">📷</span>
+                <span className="text-2xl">📷</span>
               </>
             )}
           </button>
