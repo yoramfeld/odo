@@ -264,6 +264,7 @@
 
   let currentFile = null;
   let currentConf = 'none';
+  let lastKm = null;
 
   // ── File upload (tap placeholder) ─────────────────────────────────────────
   fileInput.addEventListener('change',   () => { if (fileInput.files[0])   setFile(fileInput.files[0]); });
@@ -315,8 +316,8 @@
         body: JSON.stringify({
           image,
           mimeType: 'image/jpeg',
-          useContext: !!ballpark.value,
-          prefixDigits: ballpark.value.trim(),
+          useContext: !!(ballpark.value.trim() || lastKm),
+          prefixDigits: ballpark.value.trim() || (lastKm != null ? String(lastKm) : ''),
         }),
       });
       const data = await resp.json();
@@ -365,6 +366,7 @@
       setTimeout(() => kmInput.style.borderBottomColor = '', 800);
       return;
     }
+    lastKm = val;
     addLog(currentFile, val, currentConf);
     reset();
   });
