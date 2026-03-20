@@ -227,7 +227,18 @@ function CarsTab() {
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <FieldRow label="Plate">
-                <Input value={form.plate || ''} onChange={e => setF('plate', e.target.value)} placeholder="12-345-67" />
+                <Input
+                  value={form.plate || ''}
+                  onChange={e => {
+                    const d = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    const p = d.length > 5 ? `${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}`
+                            : d.length > 3 ? `${d.slice(0,3)}-${d.slice(3)}`
+                            : d;
+                    setF('plate', p);
+                  }}
+                  placeholder="123-45-678"
+                  inputMode="numeric"
+                />
               </FieldRow>
               <FieldRow label="Year">
                 <Input type="number" value={form.year || ''} onChange={e => setF('year', e.target.value)} placeholder="2022" />
