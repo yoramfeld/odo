@@ -22,11 +22,15 @@ const RETENTION_DAYS = parseInt(process.env.PHOTO_RETENTION_DAYS) || 365;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function validateEndKm(startKm, startTime, endKm, endTime) {
+function validateEndKm(startKm, startTime, endKm, endTime, isManual = false) {
   const delta = endKm - startKm;
 
-  if (delta < 0)         return { error: 'Odometer went backwards — please retake photo' };
-  if (delta === 0)       return { error: 'End KM equals start KM — did you photograph the right display?' };
+  if (delta < 0)   return { error: isManual
+    ? 'מד הק״מ נמוך מהתחלה — בדוק את הערך שהוזן'
+    : 'Odometer went backwards — please retake photo' };
+  if (delta === 0) return { error: isManual
+    ? 'מד הק״מ זהה לתחלת הנסיעה — לא נרשמה נסיעה'
+    : 'End KM equals start KM — did you photograph the right display?' };
   if (delta > MAX_TRIP_KM) {
     // Try auto-correction using known prefix
     const prefix    = String(startKm).slice(0, -3);
@@ -232,13 +236,22 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
+  const { force, endKmManual } = req.body;
   const endTime = new Date();
-  const validation = validateEndKm(trip.start_km_confirmed, trip.start_time, endKmConfirmed, endTime);
+  const validation = validateEndKm(trip.start_km_confirmed, trip.start_time, endKmConfirmed, endTime, !!endKmManual);
 
   if (validation.error) {
-    await logError(req, 422, validation.error,
-      `driver: ${req.user.name} · trip ${trip.id} · car ${trip.car_id} · start ${trip.start_km_confirmed} → submitted ${endKmConfirmed}`);
-    return res.status(422).json({ error: validation.error });
+    if (!force) {
+      await logError(req, 422, validation.error,
+        `driver: ${req.user.name} · trip ${trip.id} · car ${trip.car_id} · start ${trip.start_km_confirmed} → submitted ${endKmConfirmed}`);
+      return res.status(422).json({ error: validation.error, canForce: true });
+    }
+    // Force-complete: log and store the validation note
+    validation.forceNote = validation.error;
+    validation.ok = true;
+    validation.speedFlag = false;
+    validation.speed = null;
+    validation.delta = endKmConfirmed - trip.start_km_confirmed;
   }
 
   const finalKm = validation.corrected ?? endKmConfirmed;
@@ -247,8 +260,9 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
 
   // Build manual_fields: append end-side flags to whatever was set at trip start
   const prevManual = trip.manual_fields ? trip.manual_fields.split(',') : [];
-  if (endKmManual)       prevManual.push('end_km');
-  if (endLocationManual) prevManual.push('end_location');
+  if (endKmManual)          prevManual.push('end_km');
+  if (endLocationManual)    prevManual.push('end_location');
+  if (validation.forceNote) prevManual.push('force_complete');
   const manualFields = prevManual.length ? [...new Set(prevManual)].join(',') : null;
 
   const { rows } = await db.query(
@@ -262,12 +276,15 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
        avg_speed_kmh    = $6,
        photo_expires_at = $7,
        end_location     = $8,
-       manual_fields    = $9
-     WHERE id = $10 RETURNING *`,
+       manual_fields    = $9,
+       notes            = CASE WHEN $10::text IS NOT NULL
+                               THEN COALESCE(notes || ' | ', '') || $10
+                               ELSE notes END
+     WHERE id = $11 RETURNING *`,
     [endKmOcr || null, finalKm, photoBuffer, endTime,
      validation.speedFlag || false, validation.speed || null,
      photoBuffer ? expiresAt : null, endLocation || null,
-     manualFields, trip.id]
+     manualFields, validation.forceNote || null, trip.id]
   );
 
   // Update car's current_km

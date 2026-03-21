@@ -35,6 +35,7 @@ export default function TripEnd() {
   const [confidence, setConf]   = useState('none');
   const [warn, setWarn]         = useState('');
   const [error, setError]       = useState('');
+  const [canForce, setCanForce] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [ocrLoading, setOcrLoading]       = useState(false);
   const [locationText, setLocationText]   = useState('');
@@ -188,9 +189,10 @@ export default function TripEnd() {
     }
   }
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e, force = false) {
     e.preventDefault();
     setError('');
+    setCanForce(false);
     if (!endKm) { setError('אנא הזן מד קילומטר'); return; }
 
     setLoading(true);
@@ -217,7 +219,8 @@ export default function TripEnd() {
         endPhotoBase64,
         endLocation,
         endLocationManual: isManual,
-        endKmManual: !canvasRef.current,  // no photo taken
+        endKmManual: !canvasRef.current,
+        force,
       });
 
       if (data.warn) setWarn(data.warn);
@@ -231,7 +234,9 @@ export default function TripEnd() {
         navigate('/');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'שגיאה בסיום נסיעה');
+      const body = err.response?.data;
+      setError(body?.error || 'שגיאה בסיום נסיעה');
+      if (body?.canForce) setCanForce(true);
     } finally {
       setLoading(false);
     }
@@ -419,8 +424,19 @@ export default function TripEnd() {
         )}
 
         {error && (
-          <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-3">
-            {error}
+          <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-3 space-y-3">
+            <div>{error}</div>
+            {canForce && (
+              <button
+                type="button"
+                onClick={e => handleSubmit(e, true)}
+                disabled={loading}
+                className="w-full bg-red-800 hover:bg-red-700 disabled:opacity-40
+                           text-white font-semibold rounded-xl py-2.5 text-sm transition-colors"
+              >
+                סיים בכל זאת
+              </button>
+            )}
           </div>
         )}
 
