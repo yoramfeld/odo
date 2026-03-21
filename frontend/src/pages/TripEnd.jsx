@@ -228,7 +228,7 @@ export default function TripEnd() {
       // Show auto-correction notice briefly then navigate
       if (data.autoCorrection) {
         setEndKm(String(data.trip.end_km_confirmed));
-        setWarn(`Auto-corrected from ${endKmOcr} → ${data.trip.end_km_confirmed} km`);
+        setWarn(`תוקן אוטומטית: ${endKmOcr} → ${data.trip.end_km_confirmed} ק״מ`);
         setTimeout(() => navigate('/'), 2000);
       } else {
         navigate('/');

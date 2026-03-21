@@ -91,7 +91,7 @@ export default function TripStart() {
   function handleKmChange(val) {
     setStartKm(val);
     if (lastKm != null && val !== '' && Math.abs(parseInt(val) - lastKm) > 5) {
-      setWarn(`Expected ${lastKm.toLocaleString()} km — you entered ${parseInt(val).toLocaleString()} km. Add a note if needed.`);
+      setWarn(`צפוי ${lastKm.toLocaleString()} ק״מ — הוזן ${parseInt(val).toLocaleString()} ק״מ. הוסף הערה במידת הצורך.`);
     } else {
       setWarn('');
     }
@@ -155,13 +155,13 @@ export default function TripStart() {
       if (data.km != null) {
         setStartKm(String(data.km));
         if (lastKm != null && Math.abs(data.km - lastKm) > 5) {
-          setWarn(`Expected ${lastKm.toLocaleString()} km — OCR read ${data.km.toLocaleString()} km.`);
+          setWarn(`צפוי ${lastKm.toLocaleString()} ק״מ — OCR קרא ${data.km.toLocaleString()} ק״מ.`);
         } else {
           setWarn('');
         }
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'OCR failed — please try again');
+      setError(err.response?.data?.error || 'שגיאה בקריאת המד — נסה שוב');
     } finally {
       setOcrLoading(false);
     }

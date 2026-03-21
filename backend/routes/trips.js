@@ -26,11 +26,11 @@ function validateEndKm(startKm, startTime, endKm, endTime, isManual = false) {
   const delta = endKm - startKm;
 
   if (delta < 0)   return { error: isManual
-    ? 'מד הק״מ נמוך מהתחלה — בדוק את הערך שהוזן'
-    : 'Odometer went backwards — please retake photo' };
+    ? 'מד הק״מ נמוך מתחילת הנסיעה — בדוק את הערך שהוזן'
+    : 'מד הקילומטר ירד — צלם את המד שוב' };
   if (delta === 0) return { error: isManual
-    ? 'מד הק״מ זהה לתחלת הנסיעה — לא נרשמה נסיעה'
-    : 'End KM equals start KM — did you photograph the right display?' };
+    ? 'מד הק״מ זהה לתחילת הנסיעה — לא נרשמה נסיעה'
+    : 'מד הק״מ זהה לתחילת הנסיעה — האם צילמת את המד הנכון?' };
   if (delta > MAX_TRIP_KM) {
     // Try auto-correction using known prefix
     const prefix    = String(startKm).slice(0, -3);
@@ -41,7 +41,7 @@ function validateEndKm(startKm, startTime, endKm, endTime, isManual = false) {
     if (correctedDelta > 0 && correctedDelta <= MAX_TRIP_KM) {
       return { corrected, autoCorrection: true };
     }
-    return { error: `Trip distance (${delta} km) exceeds maximum — likely OCR misread, please retake` };
+    return { error: `מרחק של ${delta} ק״מ חורג מהמקסימום — ייתכן שגיאת קריאה, ${isManual ? 'בדוק את הערך' : 'צלם שוב'}` };
   }
 
   const hours = (new Date(endTime) - new Date(startTime)) / 3_600_000;
@@ -58,7 +58,7 @@ function validateEndKm(startKm, startTime, endKm, endTime, isManual = false) {
     if (correctedDelta > 0 && correctedSpeed < SPEED_MAX) {
       return { corrected, autoCorrection: true, speed: correctedSpeed };
     }
-    return { error: 'Implausible speed — could not auto-correct OCR reading. Please retake photo.' };
+    return { error: `מהירות בלתי סבירה — ${isManual ? 'בדוק את הערך שהוזן' : 'לא ניתן לתקן את הקריאה, צלם שוב'}` };
   }
 
   return {
@@ -66,7 +66,7 @@ function validateEndKm(startKm, startTime, endKm, endTime, isManual = false) {
     delta,
     speed,
     speedFlag: speed > SPEED_WARN,
-    warn: delta > WARN_TRIP_KM ? `Trip is ${delta} km — longer than usual. Please confirm.` : null,
+    warn: delta > WARN_TRIP_KM ? `נסיעה של ${delta} ק״מ — ארוכה מהרגיל. אנא אשר.` : null,
   };
 }
 
@@ -130,7 +130,7 @@ router.get('/:id', requireAuth, async (req, res) => {
   const trip = rows[0];
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
   if (req.user.role !== 'admin' && trip.driver_id !== req.user.id) {
-    return res.status(403).json({ error: 'Forbidden' });
+    return res.status(403).json({ error: 'אין הרשאה' });
   }
   res.json(trip);
 });
@@ -156,7 +156,7 @@ router.patch('/:id/start-details', requireAuth, async (req, res) => {
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
   if (trip.status !== 'active') return res.status(409).json({ error: 'Trip is not active' });
   if (req.user.role !== 'admin' && trip.driver_id !== req.user.id) {
-    return res.status(403).json({ error: 'Forbidden' });
+    return res.status(403).json({ error: 'אין הרשאה' });
   }
 
   // Build manual_fields: start-details banner always implies these were corrected after the fact
@@ -194,7 +194,7 @@ router.post('/start', requireAuth, async (req, res) => {
     [carId]
   );
   if (active.length) {
-    return res.status(409).json({ error: 'This car already has an active trip' });
+    return res.status(409).json({ error: 'לרכב זה יש נסיעה פעילה' });
   }
 
   // Discrepancy check vs last confirmed end KM
@@ -233,7 +233,7 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
   if (trip.status !== 'active') return res.status(409).json({ error: 'Trip is not active' });
   if (req.user.role !== 'admin' && trip.driver_id !== req.user.id) {
-    return res.status(403).json({ error: 'Forbidden' });
+    return res.status(403).json({ error: 'אין הרשאה' });
   }
 
   const { force, endKmManual } = req.body;
