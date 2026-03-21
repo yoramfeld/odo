@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS trips (
   end_location          TEXT,                -- Reverse-geocoded address at trip end
   end_location_manual   BOOLEAN DEFAULT FALSE,
   approved_by           TEXT,               -- Who authorized the trip
+  start_details_manual  BOOLEAN DEFAULT FALSE, -- Start details were corrected after the fact
 
   status                TEXT DEFAULT 'active' CHECK(status IN ('active', 'completed')),
   created_at            TIMESTAMPTZ DEFAULT NOW()

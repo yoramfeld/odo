@@ -57,9 +57,14 @@ export default function TripEnd() {
       setTrip(t);
       const elapsed = (Date.now() - new Date(t.start_time)) / 60000;
       if (elapsed < 3) setShowStartEdit(true);
+      // Format start_time as datetime-local value (local time)
+      const st = new Date(t.start_time);
+      const pad = n => String(n).padStart(2, '0');
+      const localDT = `${st.getFullYear()}-${pad(st.getMonth()+1)}-${pad(st.getDate())}T${pad(st.getHours())}:${pad(st.getMinutes())}`;
       setStartForm(f => ({
         ...f,
         startKm: String(t.start_km_confirmed ?? ''),
+        startTime: localDT,
         reason: t.reason ?? '',
         approvedBy: t.approved_by ?? '',
         startLocation: t.start_location ?? '',
@@ -166,6 +171,7 @@ export default function TripEnd() {
     try {
       const updated = await api.patch(`/trips/${tripId}/start-details`, {
         startKm: parseInt(startForm.startKm) || undefined,
+        startTime: startForm.startTime || undefined,
         startLocation: startForm.startLocation.trim() || undefined,
         startLocationManual: startForm.startLocation.trim() !== (trip.start_location || ''),
         reason: startForm.reason.trim() || undefined,
@@ -277,6 +283,13 @@ export default function TripEnd() {
               <>
                 <p className="text-amber-400 text-sm font-semibold">שכחת לרשום יציאה? עדכן פרטים</p>
                 <div className="space-y-2">
+                  <input
+                    type="datetime-local"
+                    value={startForm.startTime || ''}
+                    onChange={e => setStartForm(f => ({ ...f, startTime: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
+                               text-white text-sm focus:outline-none focus:border-amber-500"
+                  />
                   <input
                     type="number" inputMode="numeric"
                     value={startForm.startKm}

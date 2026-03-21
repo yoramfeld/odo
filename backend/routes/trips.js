@@ -147,7 +147,7 @@ router.get('/car/:carId/last-end-km', requireAuth, async (req, res) => {
 
 // PATCH /api/trips/:id/start-details — edit start fields of an active trip
 router.patch('/:id/start-details', requireAuth, async (req, res) => {
-  const { startKm, startLocation, startLocationManual, reason, approvedBy } = req.body;
+  const { startKm, startTime, startLocation, startLocationManual, reason, approvedBy } = req.body;
 
   const { rows: [trip] } = await db.query('SELECT * FROM trips WHERE id = $1', [req.params.id]);
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
@@ -159,13 +159,15 @@ router.patch('/:id/start-details', requireAuth, async (req, res) => {
   const { rows } = await db.query(
     `UPDATE trips SET
        start_km_confirmed    = COALESCE($1, start_km_confirmed),
-       start_location        = COALESCE($2, start_location),
-       start_location_manual = COALESCE($3, start_location_manual),
-       reason                = COALESCE($4, reason),
-       approved_by           = $5
-     WHERE id = $6 RETURNING *`,
-    [startKm ?? null, startLocation || null, startLocationManual ?? null,
-     reason || null, approvedBy || null, req.params.id]
+       start_time            = COALESCE($2, start_time),
+       start_location        = COALESCE($3, start_location),
+       start_location_manual = COALESCE($4, start_location_manual),
+       reason                = COALESCE($5, reason),
+       approved_by           = $6,
+       start_details_manual  = TRUE
+     WHERE id = $7 RETURNING *`,
+    [startKm ?? null, startTime || null, startLocation || null,
+     startLocationManual ?? null, reason || null, approvedBy || null, req.params.id]
   );
   res.json(rows[0]);
 });
