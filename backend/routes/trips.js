@@ -28,9 +28,8 @@ function validateEndKm(startKm, startTime, endKm, endTime, isManual = false) {
   if (delta < 0)   return { error: isManual
     ? 'מד הק״מ נמוך מתחילת הנסיעה — בדוק את הערך שהוזן'
     : 'מד הקילומטר ירד — צלם את המד שוב' };
-  if (delta === 0) return { error: isManual
-    ? 'מד הק״מ זהה לתחילת הנסיעה — לא נרשמה נסיעה'
-    : 'מד הק״מ זהה לתחילת הנסיעה — האם צילמת את המד הנכון?' };
+  if (delta === 0) return { ok: true, delta: 0, speed: 0, speedFlag: false,
+    warn: isManual ? 'מד הק״מ זהה לתחילת הנסיעה — לא נרשמה נסיעה' : 'מד הק״מ זהה לתחילת הנסיעה — האם צילמת את המד הנכון?' };
   if (delta > MAX_TRIP_KM) {
     // Try auto-correction using known prefix
     const prefix    = String(startKm).slice(0, -3);

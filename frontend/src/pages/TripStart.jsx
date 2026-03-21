@@ -67,12 +67,13 @@ export default function TripStart() {
     setLocLoading(false);
   }
 
-  // Load cars + suggestions
+  // Load cars + suggestions + location
   useEffect(() => {
     api.get('/cars')
       .then(res => setCars(res.data))
       .finally(() => setCarsLoading(false));
     api.get('/trips/suggestions').then(r => setSuggestions(r.data)).catch(() => {});
+    refreshLocation();
   }, []);
 
   // When car changes, fetch last known KM
@@ -231,156 +232,146 @@ export default function TripStart() {
         </div>
 
         {/* Start KM */}
-        {carId && (
-          <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              מד קילומטר התחלתי
-            </label>
-            {lastKm != null && (
-              <p className="text-slate-500 text-xs mb-2">
-                אחרון מתועד: <span className="text-slate-300">{lastKm.toLocaleString()} ק״מ</span>
-              </p>
-            )}
+        <div>
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+            מד קילומטר התחלתי
+          </label>
+          {lastKm != null && (
+            <p className="text-slate-500 text-xs mb-2">
+              אחרון מתועד: <span className="text-slate-300">{lastKm.toLocaleString()} ק״מ</span>
+            </p>
+          )}
 
-            {/* OCR preview */}
-            {previewSrc && (
-              <img src={previewSrc} alt="odometer"
-                className="w-full rounded-xl mb-3 object-contain bg-black"
-                style={{ maxHeight: '30dvh' }} />
-            )}
+          {/* OCR preview */}
+          {previewSrc && (
+            <img src={previewSrc} alt="odometer"
+              className="w-full rounded-xl mb-3 object-contain bg-black"
+              style={{ maxHeight: '30dvh' }} />
+          )}
 
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment"
-              className="hidden" onChange={e => handleFile(e.target.files[0])} />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+            className="hidden" onChange={e => handleFile(e.target.files[0])} />
 
-            <div className="relative">
-              <input
-                type="number"
-                inputMode="numeric"
-                value={startKm}
-                onChange={e => handleKmChange(e.target.value)}
-                required
-                min={0}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pl-12
-                           text-white text-2xl font-bold focus:outline-none focus:border-blue-500
-                           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
-                           [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              <button type="button" onClick={() => cameraRef.current.click()}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl leading-none">
-                {ocrLoading
-                  ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                    </svg>
-                  : '📷'}
-              </button>
-            </div>
-
-            {confidence && (
-              <p className="text-xs mt-1.5">
-                <span className={`px-2 py-0.5 rounded-full border text-xs
-                  ${confidence === 'high' ? 'bg-green-950 text-green-400 border-green-800'
-                  : confidence === 'low'  ? 'bg-amber-950 text-amber-400 border-amber-800'
-                                          : 'bg-red-950 text-red-400 border-red-800'}`}>
-                  {confidence}
-                </span>
-              </p>
-            )}
-            {warn && (
-              <div className="mt-2 bg-amber-950 border border-amber-800 text-amber-400
-                              text-sm rounded-xl px-4 py-3">
-                ⚠️ {warn}
-              </div>
-            )}
+          <div className="relative">
+            <input
+              type="number"
+              inputMode="numeric"
+              value={startKm}
+              onChange={e => handleKmChange(e.target.value)}
+              required
+              min={0}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pl-12
+                         text-white text-2xl font-bold focus:outline-none focus:border-blue-500
+                         [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
+                         [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <button type="button" onClick={() => cameraRef.current.click()}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl leading-none">
+              {ocrLoading
+                ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                : '📷'}
+            </button>
           </div>
-        )}
+
+          {confidence && (
+            <p className="text-xs mt-1.5">
+              <span className={`px-2 py-0.5 rounded-full border text-xs
+                ${confidence === 'high' ? 'bg-green-950 text-green-400 border-green-800'
+                : confidence === 'low'  ? 'bg-amber-950 text-amber-400 border-amber-800'
+                                        : 'bg-red-950 text-red-400 border-red-800'}`}>
+                {confidence}
+              </span>
+            </p>
+          )}
+          {warn && (
+            <div className="mt-2 bg-amber-950 border border-amber-800 text-amber-400
+                            text-sm rounded-xl px-4 py-3">
+              ⚠️ {warn}
+            </div>
+          )}
+        </div>
 
         {/* Reason */}
-        {carId && (
-          <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              סיבת הנסיעה
-            </label>
-            <AutocompleteInput
-              value={reason}
-              onChange={setReason}
-              suggestions={suggestions.reason}
-              placeholder="מנהלי, בט״ש, מבצעי…"
-              required
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                         text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        )}
+        <div>
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+            סיבת הנסיעה
+          </label>
+          <AutocompleteInput
+            value={reason}
+            onChange={setReason}
+            suggestions={suggestions.reason}
+            placeholder="מנהלי, בט״ש, מבצעי…"
+            required
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                       text-white focus:outline-none focus:border-blue-500"
+          />
+        </div>
 
         {/* Approved by */}
-        {carId && (
-          <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              באישור
-            </label>
-            <AutocompleteInput
-              value={approvedBy}
-              onChange={setApprovedBy}
-              suggestions={suggestions.approved_by}
-              placeholder="ק.אגם, אח״מ…"
-              required
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                         text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        )}
+        <div>
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+            באישור
+          </label>
+          <AutocompleteInput
+            value={approvedBy}
+            onChange={setApprovedBy}
+            suggestions={suggestions.approved_by}
+            placeholder="ק.אגם, אח״מ…"
+            required
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                       text-white focus:outline-none focus:border-blue-500"
+          />
+        </div>
 
         {/* Notes */}
-        {carId && (
-          <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              הערות <span className="normal-case text-slate-600">(אופציונלי)</span>
-            </label>
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              rows={2}
-              placeholder="הערות נוספות…"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                         text-white focus:outline-none focus:border-blue-500 resize-none"
-            />
-          </div>
-        )}
+        <div>
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+            הערות <span className="normal-case text-slate-600">(אופציונלי)</span>
+          </label>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={2}
+            placeholder="הערות נוספות…"
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                       text-white focus:outline-none focus:border-blue-500 resize-none"
+          />
+        </div>
 
         {/* Location */}
-        {carId && (
-          <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              מיקום יציאה
-              {locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
-                <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
-              )}
-            </label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <AutocompleteInput
-                  value={locationText}
-                  onChange={setLocationText}
-                  suggestions={suggestions.start_location}
-                  placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת…'}
-                  disabled={locationLoading}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                             text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
-                />
-              </div>
-              <button type="button" onClick={refreshLocation} disabled={locationLoading}
-                className="text-slate-400 text-xl leading-none disabled:opacity-30 flex-shrink-0">
-                {locationLoading
-                  ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                    </svg>
-                  : '📍'}
-              </button>
+        <div>
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+            מיקום יציאה
+            {locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
+              <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
+            )}
+          </label>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <AutocompleteInput
+                value={locationText}
+                onChange={setLocationText}
+                suggestions={suggestions.start_location}
+                placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת…'}
+                disabled={locationLoading}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                           text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
+              />
             </div>
+            <button type="button" onClick={refreshLocation} disabled={locationLoading}
+              className="text-slate-400 text-xl leading-none disabled:opacity-30 flex-shrink-0">
+              {locationLoading
+                ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                : '📍'}
+            </button>
           </div>
-        )}
+        </div>
 
         {error && (
           <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-3">
@@ -388,16 +379,14 @@ export default function TripStart() {
           </div>
         )}
 
-        {carId && (
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40
-                       text-white font-bold rounded-2xl py-4 text-lg transition-colors"
-          >
-            {loading ? 'מתחיל…' : 'התחל נסיעה ←'}
-          </button>
-        )}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40
+                     text-white font-bold rounded-2xl py-4 text-lg transition-colors"
+        >
+          {loading ? 'מתחיל…' : 'התחל נסיעה ←'}
+        </button>
 
       </form>
     </div>

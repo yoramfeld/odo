@@ -170,7 +170,7 @@ export default function TripEnd() {
     const unchanged = startForm.startKm === String(trip.start_km_confirmed ?? '') &&
                       startForm.startTime === originalTime &&
                       startForm.startLocation === (trip.start_location ?? '');
-    if (unchanged) { navigate('/'); return; }
+    if (unchanged) { setShowStartEdit(false); return; }
 
     setStartSaving(true);
     try {
@@ -181,7 +181,6 @@ export default function TripEnd() {
         startLocationManual: startForm.startLocation.trim() !== (trip.start_location || ''),
       });
       setShowStartEdit(false);
-      navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'שגיאה בשמירת פרטי יציאה');
     } finally {
