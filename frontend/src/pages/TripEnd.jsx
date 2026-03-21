@@ -204,12 +204,13 @@ export default function TripEnd() {
 
       if (data.warn) setWarn(data.warn);
 
-      // Check if start/end data are suspiciously similar (elapsed < 3 min)
+      // Check if start/end data are suspiciously similar (elapsed < 3 min, non-zero distance)
       const t = data.trip;
+      const delta = (t?.end_km_confirmed ?? 0) - (t?.start_km_confirmed ?? 0);
       const elapsed = t?.end_time && t?.start_time
         ? (new Date(t.end_time) - new Date(t.start_time)) / 60000
         : null;
-      if (elapsed !== null && elapsed < 3) {
+      if (delta > 0 && elapsed !== null && elapsed < 3) {
         prefillStartForm(t);
         setShowStartEdit(true);
         return;
