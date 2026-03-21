@@ -51,26 +51,30 @@ export default function TripEnd() {
   const cameraRef  = useRef();
   const canvasRef  = useRef(null);
 
+  async function refreshLocation() {
+    setLocLoading(true);
+    const result = await getLocationFull();
+    if (!result) { setLocLoading(false); return; }
+    setGpsCoords({ lat: result.lat, lng: result.lng });
+    try {
+      const { data } = await api.get(`/locations/lookup?lat=${result.lat}&lng=${result.lng}`);
+      const name = data.name || result.address;
+      setDetectedLoc(name);
+      setLocationText(name);
+    } catch {
+      setDetectedLoc(result.address);
+      setLocationText(result.address);
+    }
+    setLocLoading(false);
+  }
+
   useEffect(() => {
     api.get(`/trips/${tripId}`).then(res => {
       const t = res.data;
       setTrip(t);
       prefillStartForm(t);
     });
-    getLocationFull().then(async result => {
-      if (!result) { setLocLoading(false); return; }
-      setGpsCoords({ lat: result.lat, lng: result.lng });
-      try {
-        const { data } = await api.get(`/locations/lookup?lat=${result.lat}&lng=${result.lng}`);
-        const name = data.name || result.address;
-        setDetectedLoc(name);
-        setLocationText(name);
-      } catch {
-        setDetectedLoc(result.address);
-        setLocationText(result.address);
-      }
-      setLocLoading(false);
-    });
+    refreshLocation();
   }, [tripId]);
 
   // ── Image processing (same as POC) ──────────────────────────────────────
@@ -160,6 +164,14 @@ export default function TripEnd() {
   }
 
   async function saveStartDetails() {
+    const st = new Date(trip.start_time);
+    const pad = n => String(n).padStart(2, '0');
+    const originalTime = `${st.getFullYear()}-${pad(st.getMonth()+1)}-${pad(st.getDate())}T${pad(st.getHours())}:${pad(st.getMinutes())}`;
+    const unchanged = startForm.startKm === String(trip.start_km_confirmed ?? '') &&
+                      startForm.startTime === originalTime &&
+                      startForm.startLocation === (trip.start_location ?? '');
+    if (unchanged) { navigate('/'); return; }
+
     setStartSaving(true);
     try {
       await api.patch(`/trips/${tripId}/start-details`, {
@@ -306,17 +318,11 @@ export default function TripEnd() {
                            text-white text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => navigate('/')}
-                className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2 text-sm">
-                דלג
-              </button>
-              <button type="button" onClick={saveStartDetails} disabled={startSaving}
-                className="flex-1 bg-amber-600 hover:bg-amber-500 disabled:opacity-40
-                           text-white font-semibold rounded-xl py-2 text-sm">
-                {startSaving ? 'שומר…' : 'שמור'}
-              </button>
-            </div>
+            <button type="button" onClick={saveStartDetails} disabled={startSaving}
+              className="w-full bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                         text-white font-semibold rounded-xl py-2.5 text-sm">
+              {startSaving ? 'שומר…' : 'שמור'}
+            </button>
           </div>
         )}
 
@@ -378,15 +384,21 @@ export default function TripEnd() {
               <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
             )}
           </label>
-          <input
-            type="text"
-            value={locationLoading ? '' : locationText}
-            onChange={e => setLocationText(e.target.value)}
-            placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת ידנית…'}
-            disabled={locationLoading}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                       text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={locationLoading ? '' : locationText}
+              onChange={e => setLocationText(e.target.value)}
+              placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת…'}
+              disabled={locationLoading}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pl-10
+                         text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
+            />
+            <button type="button" onClick={refreshLocation} disabled={locationLoading}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base leading-none disabled:opacity-30">
+              📍
+            </button>
+          </div>
         </div>
 
         {warn && (

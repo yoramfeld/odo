@@ -103,17 +103,19 @@ router.get('/suggestions', requireAuth, async (req, res) => {
   const REASON_PRESETS   = ['מנהלי', 'בט"ש', 'מבצעי', 'איסוף/פיזור', 'תדלוק'];
   const APPROVED_PRESETS = ['ק.אגם', 'אח"מ'];
 
-  const [{ rows: rr }, { rows: ar }] = await Promise.all([
+  const [{ rows: rr }, { rows: ar }, { rows: lr }] = await Promise.all([
     db.query(`SELECT DISTINCT reason FROM trips WHERE driver_id = $1 AND reason IS NOT NULL ORDER BY reason LIMIT 30`, [req.user.id]),
     db.query(`SELECT DISTINCT approved_by FROM trips WHERE driver_id = $1 AND approved_by IS NOT NULL ORDER BY approved_by LIMIT 30`, [req.user.id]),
+    db.query(`SELECT DISTINCT start_location FROM trips WHERE driver_id = $1 AND start_location IS NOT NULL ORDER BY start_location LIMIT 30`, [req.user.id]),
   ]);
 
   const recentReasons   = rr.map(r => r.reason).filter(r => !REASON_PRESETS.includes(r));
   const recentApproved  = ar.map(r => r.approved_by).filter(r => !APPROVED_PRESETS.includes(r));
 
   res.json({
-    reason:      [...REASON_PRESETS, ...recentReasons],
-    approved_by: [...APPROVED_PRESETS, ...recentApproved],
+    reason:         [...REASON_PRESETS, ...recentReasons],
+    approved_by:    [...APPROVED_PRESETS, ...recentApproved],
+    start_location: lr.map(r => r.start_location),
   });
 });
 
@@ -184,8 +186,8 @@ router.patch('/:id/start-details', requireAuth, async (req, res) => {
 router.post('/start', requireAuth, async (req, res) => {
   const { carId, startKm, reason, notes, startLocation, startLocationManual, approvedBy } = req.body;
   const manualFields = startLocationManual ? 'start_location' : null;
-  if (!carId || startKm == null || !reason) {
-    return res.status(400).json({ error: 'carId, startKm and reason are required' });
+  if (!carId || startKm == null || !reason || !approvedBy) {
+    return res.status(400).json({ error: 'carId, startKm, reason and approvedBy are required' });
   }
 
   // Only one active trip per car

@@ -34,7 +34,7 @@ export default function TripStart() {
   const [reason, setReason]         = useState('');
   const [approvedBy, setApprovedBy] = useState('');
   const [notes, setNotes]           = useState('');
-  const [suggestions, setSuggestions] = useState({ reason: [], approved_by: [] });
+  const [suggestions, setSuggestions] = useState({ reason: [], approved_by: [], start_location: [] });
   const [warn, setWarn]         = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
@@ -44,29 +44,28 @@ export default function TripStart() {
   const [confidence, setConf]             = useState(null);
   const [locationText, setLocationText]   = useState('');
   const [detectedLoc, setDetectedLoc]     = useState(null);
-  const [locationLoading, setLocLoading]  = useState(true);
+  const [locationLoading, setLocLoading]  = useState(false);
   const [gpsCoords, setGpsCoords]         = useState(null);
 
   const cameraRef = useRef();
   const canvasRef = useRef(null);
 
-  // Get location on mount, then check for learned correction
-  useEffect(() => {
-    getLocationFull().then(async result => {
-      if (!result) { setLocLoading(false); return; }
-      setGpsCoords({ lat: result.lat, lng: result.lng });
-      try {
-        const { data } = await api.get(`/locations/lookup?lat=${result.lat}&lng=${result.lng}`);
-        const name = data.name || result.address;
-        setDetectedLoc(name);
-        setLocationText(name);
-      } catch {
-        setDetectedLoc(result.address);
-        setLocationText(result.address);
-      }
-      setLocLoading(false);
-    });
-  }, []);
+  async function refreshLocation() {
+    setLocLoading(true);
+    const result = await getLocationFull();
+    if (!result) { setLocLoading(false); return; }
+    setGpsCoords({ lat: result.lat, lng: result.lng });
+    try {
+      const { data } = await api.get(`/locations/lookup?lat=${result.lat}&lng=${result.lng}`);
+      const name = data.name || result.address;
+      setDetectedLoc(name);
+      setLocationText(name);
+    } catch {
+      setDetectedLoc(result.address);
+      setLocationText(result.address);
+    }
+    setLocLoading(false);
+  }
 
   // Load cars + suggestions
   useEffect(() => {
@@ -325,6 +324,7 @@ export default function TripStart() {
               onChange={setApprovedBy}
               suggestions={suggestions.approved_by}
               placeholder="ק.אגם, אח״מ…"
+              required
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                          text-white focus:outline-none focus:border-blue-500"
             />
@@ -353,19 +353,32 @@ export default function TripStart() {
           <div>
             <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
               מיקום יציאה
-              {!locationLoading && locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
+              {locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
                 <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
               )}
             </label>
-            <input
-              type="text"
-              value={locationLoading ? '' : locationText}
-              onChange={e => setLocationText(e.target.value)}
-              placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת ידנית…'}
-              disabled={locationLoading}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                         text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <AutocompleteInput
+                  value={locationText}
+                  onChange={setLocationText}
+                  suggestions={suggestions.start_location}
+                  placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת…'}
+                  disabled={locationLoading}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                             text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                />
+              </div>
+              <button type="button" onClick={refreshLocation} disabled={locationLoading}
+                className="text-slate-400 text-xl leading-none disabled:opacity-30 flex-shrink-0">
+                {locationLoading
+                  ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                  : '📍'}
+              </button>
+            </div>
           </div>
         )}
 
