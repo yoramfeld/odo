@@ -66,9 +66,12 @@ function TripsTab({ cars, drivers }) {
 
   function toDateTimeLocal(iso) {
     if (!iso) return '';
-    const d = new Date(iso);
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return new Date(iso).toISOString().slice(0, 16);
+  }
+
+  function fmtDT(iso) {
+    if (!iso) return null;
+    return new Date(iso).toISOString().slice(0, 16).replace('T', ' ');
   }
 
   function openEdit(t) {
@@ -295,12 +298,10 @@ function TripsTab({ cars, drivers }) {
                 {/* Paired rows: start (left) | end (right) */}
                 <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
                   <div className={hi('start_time')}>
-                    {new Date(t.start_time).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
+                    {fmtDT(t.start_time)}
                   </div>
                   <div className="text-slate-400">
-                    {t.end_time
-                      ? new Date(t.end_time).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })
-                      : <span className="text-slate-600">—</span>}
+                    {fmtDT(t.end_time) ?? <span className="text-slate-600">—</span>}
                     {duration && <span className="text-slate-500 ml-1">({duration})</span>}
                   </div>
 
