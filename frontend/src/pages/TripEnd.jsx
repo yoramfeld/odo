@@ -49,10 +49,13 @@ export default function TripEnd() {
   const set = k => v => setForm(f => ({ ...f, [k]: v }));
 
   function prefillForm(t) {
+    const d = new Date(t.start_time);
+    const pad = n => String(n).padStart(2, '0');
+    const localDT = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     setForm(f => ({
       ...f,
       startKm:       String(t.start_km_confirmed ?? ''),
-      startTime:     new Date(t.start_time).toISOString().slice(0, 16),
+      startTime:     localDT,
       startLocation: t.start_location ?? '',
       reason:        t.reason ?? '',
       approvedBy:    t.approved_by ?? '',
@@ -176,7 +179,7 @@ export default function TripEnd() {
         endLocationGps: locationRef.current || undefined,
         endKmManual:    !canvasRef.current,
         startKm:        parseInt(form.startKm) || undefined,
-        startTime:      form.startTime || undefined,
+        startTime:      form.startTime ? new Date(form.startTime).toISOString() : undefined,
         startLocation:  form.startLocation.trim() || undefined,
         reason:         form.reason.trim() || undefined,
         approvedBy:     form.approvedBy.trim() || undefined,
@@ -229,7 +232,7 @@ export default function TripEnd() {
 
       {/* Tabs */}
       <div className="flex border-b border-slate-800">
-        {[['end', 'סיום'], ['start', 'יציאה']].map(([key, label]) => (
+        {[['end', 'סיום'], ['start', 'התחלה']].map(([key, label]) => (
           <button key={key} type="button" onClick={() => setActiveTab(key)}
             className={`flex-1 py-3 text-sm font-semibold transition-colors ${
               activeTab === key
@@ -304,20 +307,20 @@ export default function TripEnd() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מד ק״מ יציאה</label>
+                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מד ק״מ התחלה</label>
                 <input type="number" inputMode="numeric" value={form.startKm}
                   onChange={e => set('startKm')(e.target.value)}
                   className={`${fieldClass} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} />
               </div>
               <div>
-                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מיקום יציאה</label>
+                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מיקום התחלה</label>
                 <AutocompleteInput value={form.startLocation} onChange={set('startLocation')}
                   suggestions={suggestions.start_location || []} placeholder="הזן מיקום…" className={fieldClass} />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">זמן יציאה</label>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">זמן התחלה</label>
               <input type="datetime-local" value={form.startTime} onChange={e => set('startTime')(e.target.value)}
                 className={fieldClass} />
             </div>

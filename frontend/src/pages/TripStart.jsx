@@ -329,7 +329,7 @@ export default function TripStart() {
         {/* Location */}
         <div>
           <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            מיקום יציאה
+            מיקום התחלה
           </label>
           <AutocompleteInput
             value={locationText}

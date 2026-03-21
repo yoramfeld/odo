@@ -101,10 +101,10 @@ function TripsTab({ cars, drivers }) {
     try {
       await api.patch(`/trips/${editing.id}`, {
         startKm:       form.startKm !== '' ? parseInt(form.startKm) : undefined,
-        startTime:     form.startTime || undefined,
+        startTime:     form.startTime ? new Date(form.startTime).toISOString() : undefined,
         startLocation: form.startLocation !== '' ? form.startLocation : undefined,
         endKm:         form.endKm !== '' ? parseInt(form.endKm) : undefined,
-        endTime:       form.endTime || undefined,
+        endTime:       form.endTime ? new Date(form.endTime).toISOString() : undefined,
         endLocation:   form.endLocation !== '' ? form.endLocation : undefined,
         reason:        form.reason || undefined,
         approvedBy:    form.approvedBy !== '' ? form.approvedBy : undefined,
@@ -224,7 +224,7 @@ function TripsTab({ cars, drivers }) {
                 <div className="grid grid-cols-2 gap-3">
                   <FieldRow label="Start Location">
                     <Input value={form.startLocation} onChange={e => setF('startLocation', e.target.value)}
-                      placeholder="מיקום יציאה" highlight={mf.has('start_location')} />
+                      placeholder="מיקום התחלה" highlight={mf.has('start_location')} />
                   </FieldRow>
                   <FieldRow label="End Location">
                     <Input value={form.endLocation} onChange={e => setF('endLocation', e.target.value)}
