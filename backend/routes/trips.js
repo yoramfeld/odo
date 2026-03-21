@@ -82,7 +82,7 @@ router.get('/', requireAuth, async (req, res) => {
             t.speed_flag, t.avg_speed_kmh,
             t.start_location, t.start_location_manual,
             t.end_location, t.end_location_manual,
-            t.approved_by, t.start_details_manual,
+            t.approved_by, t.start_details_manual, t.end_km_manual,
             (t.end_km_confirmed - t.start_km_confirmed) AS distance_km
      FROM trips t
      JOIN cars  c ON c.id = t.car_id
@@ -213,7 +213,7 @@ router.post('/start', requireAuth, async (req, res) => {
 
 // PATCH /api/trips/:id/end
 router.patch('/:id/end', requireAuth, async (req, res) => {
-  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endLocationManual } = req.body;
+  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endLocationManual, endKmManual } = req.body;
   if (endKmConfirmed == null) {
     return res.status(400).json({ error: 'endKmConfirmed is required' });
   }
@@ -251,11 +251,13 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
        avg_speed_kmh    = $6,
        photo_expires_at = $7,
        end_location        = $8,
-       end_location_manual = $9
-     WHERE id = $10 RETURNING *`,
+       end_location_manual = $9,
+       end_km_manual       = $10
+     WHERE id = $11 RETURNING *`,
     [endKmOcr || null, finalKm, photoBuffer, endTime,
      validation.speedFlag || false, validation.speed || null,
-     photoBuffer ? expiresAt : null, endLocation || null, !!endLocationManual, trip.id]
+     photoBuffer ? expiresAt : null, endLocation || null, !!endLocationManual,
+     !!endKmManual, trip.id]
   );
 
   // Update car's current_km

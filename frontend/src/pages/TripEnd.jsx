@@ -191,7 +191,7 @@ export default function TripEnd() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    if (!endKm) { setError('אנא צלם תמונה תחילה'); return; }
+    if (!endKm) { setError('אנא הזן מד קילומטר'); return; }
 
     setLoading(true);
     const endLocation = locationText.trim() || undefined;
@@ -217,6 +217,7 @@ export default function TripEnd() {
         endPhotoBase64,
         endLocation,
         endLocationManual: isManual,
+        endKmManual: !canvasRef.current,
       });
 
       if (data.warn) setWarn(data.warn);
@@ -342,85 +343,74 @@ export default function TripEnd() {
           </div>
         )}
 
-        {/* Photo */}
+        {/* End KM */}
         <div>
-          <button type="button" onClick={() => !ocrLoading && cameraRef.current.click()}
-            className="flex items-center gap-2 mb-2 w-full">
-            {ocrLoading ? (
-              <>
-                <span className="text-slate-400 text-xs uppercase tracking-widest">קורא מד קילומטר…</span>
-                <svg className="animate-spin w-4 h-4 text-slate-400 mr-auto" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                </svg>
-              </>
-            ) : (
-              <>
-                <span className="text-slate-400 text-xs uppercase tracking-widest">סיימת? צלם את מד הק״מ</span>
-                <span className="text-2xl">📷</span>
-              </>
-            )}
-          </button>
-
-          {/* Preview */}
-          {previewSrc && (
-            <img
-              src={previewSrc}
-              alt="odometer"
-              className="w-full rounded-xl mb-3 object-contain bg-black"
-              style={{ maxHeight: '35dvh' }}
-            />
-          )}
-
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment"
-            className="hidden" onChange={e => handleFile(e.target.files[0])} />
-
-          {/* End location — right below camera */}
-          <div className="mt-3">
-            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              מיקום סיום
-              {!locationLoading && locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
-                <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
-              )}
-            </label>
-            <input
-              type="text"
-              value={locationLoading ? '' : locationText}
-              onChange={e => setLocationText(e.target.value)}
-              placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת ידנית…'}
-              disabled={locationLoading}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                         text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
-            />
-          </div>
-        </div>
-
-        {/* KM result */}
-        {endKm !== '' && !ocrLoading && (
-          <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-              מד קילומטר סיום
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+            מד קילומטר סיום
+            {endKmOcr != null && (
               <span className={`mr-2 px-2 py-0.5 rounded-full text-xs border ${badgeClass(confidence)}`}>
                 {confidence}
               </span>
-            </label>
+            )}
+          </label>
+
+          <div className="relative">
             <input
               type="number"
               inputMode="numeric"
               value={endKm}
               onChange={e => setEndKm(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+              placeholder="הזן ק״מ…"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pl-12
                          text-white text-2xl font-bold focus:outline-none focus:border-blue-500
                          [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
                          [&::-webkit-inner-spin-button]:appearance-none"
             />
-            {distance != null && (
-              <p className="text-slate-400 text-sm mt-2">
-                מרחק נסיעה: <span className="text-white font-semibold">{distance} ק״מ</span>
-              </p>
-            )}
+            <button type="button" onClick={() => cameraRef.current.click()}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl leading-none">
+              {ocrLoading
+                ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                : '📷'}
+            </button>
           </div>
-        )}
+
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+            className="hidden" onChange={e => handleFile(e.target.files[0])} />
+
+          {previewSrc && (
+            <img src={previewSrc} alt="odometer"
+              className="w-full rounded-xl mt-3 object-contain bg-black"
+              style={{ maxHeight: '35dvh' }} />
+          )}
+
+          {distance != null && (
+            <p className="text-slate-400 text-sm mt-2">
+              מרחק נסיעה: <span className="text-white font-semibold">{distance} ק״מ</span>
+            </p>
+          )}
+        </div>
+
+        {/* End location */}
+        <div>
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+            מיקום סיום
+            {!locationLoading && locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
+              <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
+            )}
+          </label>
+          <input
+            type="text"
+            value={locationLoading ? '' : locationText}
+            onChange={e => setLocationText(e.target.value)}
+            placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת ידנית…'}
+            disabled={locationLoading}
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                       text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
+          />
+        </div>
 
         {warn && (
           <div className="bg-amber-950 border border-amber-800 text-amber-400 text-sm rounded-xl px-4 py-3">

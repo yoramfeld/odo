@@ -159,7 +159,7 @@ function TripsTab({ cars, drivers }) {
                     ? <div className="text-white font-bold text-sm">{t.distance_km} km</div>
                     : <Badge color="blue">active</Badge>}
                   <div className="text-slate-500 text-xs mt-0.5">
-                    {t.start_km_confirmed?.toLocaleString()}{t.start_details_manual ? ' ✎' : ''} → {t.end_km_confirmed?.toLocaleString() ?? '…'}
+                    {t.start_km_confirmed?.toLocaleString()}{t.start_details_manual ? ' ✎' : ''} → {t.end_km_confirmed?.toLocaleString() ?? '…'}{t.end_km_manual ? ' ✎' : ''}
                   </div>
                   {t.start_time && t.end_time && (() => {
                     const mins = Math.round((new Date(t.end_time) - new Date(t.start_time)) / 60000);

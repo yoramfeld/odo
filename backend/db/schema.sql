@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS trips (
   start_location_manual BOOLEAN DEFAULT FALSE,
   end_location          TEXT,                -- Reverse-geocoded address at trip end
   end_location_manual   BOOLEAN DEFAULT FALSE,
+  end_km_manual         BOOLEAN DEFAULT FALSE, -- End KM entered manually (no OCR photo)
   approved_by           TEXT,               -- Who authorized the trip
   start_details_manual  BOOLEAN DEFAULT FALSE, -- Start details were corrected after the fact
 
