@@ -50,8 +50,10 @@ CREATE TABLE IF NOT EXISTS trips (
   -- Photo retention (null the bytea after 1 year)
   photo_expires_at      TIMESTAMPTZ,
 
-  start_location        TEXT,                -- Reverse-geocoded address at trip start
-  end_location          TEXT,                -- Reverse-geocoded address at trip end
+  start_location        TEXT,                -- Manual location entered by driver at trip start
+  start_location_gps    TEXT,                -- Silently captured GPS address at trip start
+  end_location          TEXT,                -- Manual location entered by driver at trip end
+  end_location_gps      TEXT,                -- Silently captured GPS address at trip end
   approved_by           TEXT,               -- Who authorized the trip
   manual_fields         TEXT,               -- Comma-separated list of manually entered fields
 

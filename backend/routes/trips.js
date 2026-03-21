@@ -179,8 +179,8 @@ router.patch('/:id/start-details', requireAuth, async (req, res) => {
 
 // POST /api/trips/start
 router.post('/start', requireAuth, async (req, res) => {
-  const { carId, startKm, reason, notes, startLocation, startLocationManual, approvedBy } = req.body;
-  const manualFields = startLocationManual ? 'start_location' : null;
+  const { carId, startKm, reason, notes, startLocation, startLocationGps, approvedBy } = req.body;
+  const manualFields = startLocation ? 'start_location' : null;
   if (!carId || startKm == null || !reason || !approvedBy) {
     return res.status(400).json({ error: 'carId, startKm, reason and approvedBy are required' });
   }
@@ -207,11 +207,11 @@ router.post('/start', requireAuth, async (req, res) => {
 
   const { rows } = await db.query(
     `INSERT INTO trips (car_id, driver_id, start_km_confirmed, start_time, reason, notes,
-                        discrepancy_flag, discrepancy_delta, start_location, approved_by, manual_fields)
-     VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+                        discrepancy_flag, discrepancy_delta, start_location, start_location_gps, approved_by, manual_fields)
+     VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
     [carId, req.user.id, startKm, reason, notes || null,
      discrepancy, discrepancy ? delta : null,
-     startLocation || null, approvedBy || null, manualFields]
+     startLocation || null, startLocationGps || null, approvedBy || null, manualFields]
   );
 
   res.status(201).json(rows[0]);
@@ -219,7 +219,7 @@ router.post('/start', requireAuth, async (req, res) => {
 
 // PATCH /api/trips/:id/end
 router.patch('/:id/end', requireAuth, async (req, res) => {
-  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endKmManual } = req.body;
+  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endLocationGps, endKmManual } = req.body;
   if (endKmConfirmed == null) {
     return res.status(400).json({ error: 'endKmConfirmed is required' });
   }
@@ -256,15 +256,13 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
        avg_speed_kmh    = $6,
        photo_expires_at = $7,
        end_location     = $8,
-       manual_fields    = $9,
-       notes            = CASE WHEN $10::text IS NOT NULL
-                               THEN COALESCE(notes || ' | ', '') || $10
-                               ELSE notes END
+       end_location_gps = $9,
+       manual_fields    = $10
      WHERE id = $11 RETURNING *`,
     [endKmOcr || null, finalKm, photoBuffer, endTime,
      validation.speedFlag || false, validation.speed || null,
      photoBuffer ? expiresAt : null, endLocation || null,
-     manualFields, null, trip.id]
+     endLocationGps || null, manualFields, trip.id]
   );
 
   // Update car's current_km

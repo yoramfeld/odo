@@ -195,7 +195,8 @@ export default function TripEnd() {
         endKmOcr,
         endKmConfirmed: parseInt(endKm),
         endPhotoBase64,
-        endLocation: locationText.trim() || locationRef.current || undefined,
+        endLocation: locationText.trim() || undefined,
+        endLocationGps: locationRef.current || undefined,
         endKmManual: !canvasRef.current,
       });
 

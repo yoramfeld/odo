@@ -167,7 +167,7 @@ export default function TripStart() {
         startKm: parseInt(startKm),
         reason,
         notes: notes || undefined,
-        startLocation: locationRef.current || undefined,
+        startLocationGps: locationRef.current || undefined,
         approvedBy: approvedBy.trim() || undefined,
       });
       navigate('/');
