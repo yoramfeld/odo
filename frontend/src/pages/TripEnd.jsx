@@ -217,7 +217,7 @@ export default function TripEnd() {
         endPhotoBase64,
         endLocation,
         endLocationManual: isManual,
-        endKmManual: !canvasRef.current,
+        endKmManual: !canvasRef.current,  // no photo taken
       });
 
       if (data.warn) setWarn(data.warn);

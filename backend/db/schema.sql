@@ -51,12 +51,9 @@ CREATE TABLE IF NOT EXISTS trips (
   photo_expires_at      TIMESTAMPTZ,
 
   start_location        TEXT,                -- Reverse-geocoded address at trip start
-  start_location_manual BOOLEAN DEFAULT FALSE,
   end_location          TEXT,                -- Reverse-geocoded address at trip end
-  end_location_manual   BOOLEAN DEFAULT FALSE,
-  end_km_manual         BOOLEAN DEFAULT FALSE, -- End KM entered manually (no OCR photo)
   approved_by           TEXT,               -- Who authorized the trip
-  start_details_manual  BOOLEAN DEFAULT FALSE, -- Start details were corrected after the fact
+  manual_fields         TEXT,               -- Comma-separated list of manually entered fields
 
   status                TEXT DEFAULT 'active' CHECK(status IN ('active', 'completed')),
   created_at            TIMESTAMPTZ DEFAULT NOW()

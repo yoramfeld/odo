@@ -80,9 +80,8 @@ router.get('/', requireAuth, async (req, res) => {
             t.reason, t.notes, t.status,
             t.discrepancy_flag, t.discrepancy_delta,
             t.speed_flag, t.avg_speed_kmh,
-            t.start_location, t.start_location_manual,
-            t.end_location, t.end_location_manual,
-            t.approved_by, t.start_details_manual, t.end_km_manual,
+            t.start_location, t.end_location,
+            t.approved_by, t.manual_fields,
             (t.end_km_confirmed - t.start_km_confirmed) AS distance_km
      FROM trips t
      JOIN cars  c ON c.id = t.car_id
@@ -156,18 +155,23 @@ router.patch('/:id/start-details', requireAuth, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
+  // Build manual_fields: start-details banner always implies these were corrected after the fact
+  const prevManual = trip.manual_fields ? trip.manual_fields.split(',') : [];
+  prevManual.push('start_km', 'start_time');
+  if (startLocationManual) prevManual.push('start_location');
+  const manualFields = [...new Set(prevManual)].join(',');
+
   const { rows } = await db.query(
     `UPDATE trips SET
-       start_km_confirmed    = COALESCE($1, start_km_confirmed),
-       start_time            = COALESCE($2, start_time),
-       start_location        = COALESCE($3, start_location),
-       start_location_manual = COALESCE($4, start_location_manual),
-       reason                = COALESCE($5, reason),
-       approved_by           = $6,
-       start_details_manual  = TRUE
+       start_km_confirmed = COALESCE($1, start_km_confirmed),
+       start_time         = COALESCE($2, start_time),
+       start_location     = COALESCE($3, start_location),
+       reason             = COALESCE($4, reason),
+       approved_by        = $5,
+       manual_fields      = $6
      WHERE id = $7 RETURNING *`,
     [startKm ?? null, startTime || null, startLocation || null,
-     startLocationManual ?? null, reason || null, approvedBy || null, req.params.id]
+     reason || null, approvedBy || null, manualFields, req.params.id]
   );
   res.json(rows[0]);
 });
@@ -175,6 +179,7 @@ router.patch('/:id/start-details', requireAuth, async (req, res) => {
 // POST /api/trips/start
 router.post('/start', requireAuth, async (req, res) => {
   const { carId, startKm, reason, notes, startLocation, startLocationManual, approvedBy } = req.body;
+  const manualFields = startLocationManual ? 'start_location' : null;
   if (!carId || startKm == null || !reason) {
     return res.status(400).json({ error: 'carId, startKm and reason are required' });
   }
@@ -201,11 +206,11 @@ router.post('/start', requireAuth, async (req, res) => {
 
   const { rows } = await db.query(
     `INSERT INTO trips (car_id, driver_id, start_km_confirmed, start_time, reason, notes,
-                        discrepancy_flag, discrepancy_delta, start_location, start_location_manual, approved_by)
+                        discrepancy_flag, discrepancy_delta, start_location, approved_by, manual_fields)
      VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
     [carId, req.user.id, startKm, reason, notes || null,
      discrepancy, discrepancy ? delta : null,
-     startLocation || null, !!startLocationManual, approvedBy || null]
+     startLocation || null, approvedBy || null, manualFields]
   );
 
   res.status(201).json(rows[0]);
@@ -240,6 +245,12 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
   const photoBuffer = endPhotoBase64 ? Buffer.from(endPhotoBase64, 'base64') : null;
   const expiresAt = new Date(Date.now() + RETENTION_DAYS * 86_400_000);
 
+  // Build manual_fields: append end-side flags to whatever was set at trip start
+  const prevManual = trip.manual_fields ? trip.manual_fields.split(',') : [];
+  if (endKmManual)       prevManual.push('end_km');
+  if (endLocationManual) prevManual.push('end_location');
+  const manualFields = prevManual.length ? [...new Set(prevManual)].join(',') : null;
+
   const { rows } = await db.query(
     `UPDATE trips SET
        end_km_ocr       = $1,
@@ -250,14 +261,13 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
        speed_flag       = $5,
        avg_speed_kmh    = $6,
        photo_expires_at = $7,
-       end_location        = $8,
-       end_location_manual = $9,
-       end_km_manual       = $10
-     WHERE id = $11 RETURNING *`,
+       end_location     = $8,
+       manual_fields    = $9
+     WHERE id = $10 RETURNING *`,
     [endKmOcr || null, finalKm, photoBuffer, endTime,
      validation.speedFlag || false, validation.speed || null,
-     photoBuffer ? expiresAt : null, endLocation || null, !!endLocationManual,
-     !!endKmManual, trip.id]
+     photoBuffer ? expiresAt : null, endLocation || null,
+     manualFields, trip.id]
   );
 
   // Update car's current_km
