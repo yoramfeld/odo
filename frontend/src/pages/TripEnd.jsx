@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
+import AutocompleteInput from '../components/AutocompleteInput';
 
 async function getLocationFull() {
   return new Promise(resolve => {
@@ -31,7 +32,8 @@ export default function TripEnd() {
   const [endKm, setEndKm]       = useState('');
   const [endKmOcr, setEndKmOcr] = useState(null);
   const [confidence, setConf]   = useState('none');
-  const [locationText, setLocationText] = useState('');
+  const [locationText, setLocationText]   = useState('');
+  const [locationSuggestions, setLocSugg] = useState([]);
   const [error, setError]   = useState('');
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -62,6 +64,7 @@ export default function TripEnd() {
       setTrip(t);
       prefillStartForm(t);
     });
+    api.get('/trips/suggestions').then(r => setLocSugg(r.data.end_location || [])).catch(() => {});
     fetchLocation();
   }, [tripId]);
 
@@ -345,10 +348,10 @@ export default function TripEnd() {
           <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
             מיקום סיום
           </label>
-          <input
-            type="text"
+          <AutocompleteInput
             value={locationText}
-            onChange={e => setLocationText(e.target.value)}
+            onChange={setLocationText}
+            suggestions={locationSuggestions}
             placeholder="הזן כתובת…"
             className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                        text-white text-sm focus:outline-none focus:border-blue-500"

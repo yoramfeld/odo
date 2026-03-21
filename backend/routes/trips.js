@@ -98,10 +98,11 @@ router.get('/suggestions', requireAuth, async (req, res) => {
   const REASON_PRESETS   = ['מנהלי', 'בט"ש', 'מבצעי', 'איסוף/פיזור', 'תדלוק'];
   const APPROVED_PRESETS = ['ק.אגם', 'אח"מ'];
 
-  const [{ rows: rr }, { rows: ar }, { rows: lr }] = await Promise.all([
+  const [{ rows: rr }, { rows: ar }, { rows: lr }, { rows: er }] = await Promise.all([
     db.query(`SELECT DISTINCT reason FROM trips WHERE driver_id = $1 AND reason IS NOT NULL ORDER BY reason LIMIT 30`, [req.user.id]),
     db.query(`SELECT DISTINCT approved_by FROM trips WHERE driver_id = $1 AND approved_by IS NOT NULL ORDER BY approved_by LIMIT 30`, [req.user.id]),
     db.query(`SELECT DISTINCT start_location FROM trips WHERE driver_id = $1 AND start_location IS NOT NULL ORDER BY start_location LIMIT 30`, [req.user.id]),
+    db.query(`SELECT DISTINCT end_location FROM trips WHERE driver_id = $1 AND end_location IS NOT NULL ORDER BY end_location LIMIT 30`, [req.user.id]),
   ]);
 
   const recentReasons   = rr.map(r => r.reason).filter(r => !REASON_PRESETS.includes(r));
@@ -111,6 +112,7 @@ router.get('/suggestions', requireAuth, async (req, res) => {
     reason:         [...REASON_PRESETS, ...recentReasons],
     approved_by:    [...APPROVED_PRESETS, ...recentApproved],
     start_location: lr.map(r => r.start_location),
+    end_location:   er.map(r => r.end_location),
   });
 });
 
