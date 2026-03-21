@@ -31,6 +31,7 @@ export default function TripEnd() {
   const [endKm, setEndKm]       = useState('');
   const [endKmOcr, setEndKmOcr] = useState(null);
   const [confidence, setConf]   = useState('none');
+  const [locationText, setLocationText] = useState('');
   const [error, setError]   = useState('');
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -194,7 +195,7 @@ export default function TripEnd() {
         endKmOcr,
         endKmConfirmed: parseInt(endKm),
         endPhotoBase64,
-        endLocation: locationRef.current || undefined,
+        endLocation: locationText.trim() || locationRef.current || undefined,
         endKmManual: !canvasRef.current,
       });
 
@@ -212,6 +213,7 @@ export default function TripEnd() {
 
       navigate('/');
     } catch (err) {
+      if (err.response?.status === 409) { navigate('/'); return; }
       setError(err.response?.data?.error || 'שגיאה בסיום נסיעה');
     } finally {
       setLoading(false);
@@ -335,6 +337,21 @@ export default function TripEnd() {
               מרחק נסיעה: <span className="text-white font-semibold">{distance} ק״מ</span>
             </p>
           )}
+        </div>
+
+        {/* End location */}
+        <div>
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+            מיקום סיום
+          </label>
+          <input
+            type="text"
+            value={locationText}
+            onChange={e => setLocationText(e.target.value)}
+            placeholder="הזן כתובת…"
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                       text-white text-sm focus:outline-none focus:border-blue-500"
+          />
         </div>
 
         {error && (
