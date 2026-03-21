@@ -264,56 +264,62 @@ function TripsTab({ cars, drivers }) {
             const duration = mins != null
               ? `${Math.floor(mins/60)}:${String(mins%60).padStart(2,'0')}` : null;
 
+            const mf = new Set(manualArr);
+            const hi = f => mf.has(f) ? 'text-red-400' : 'text-slate-400';
+
             return (
               <div key={t.id} onClick={() => openEdit(t)}
                 className={`px-4 py-3 border-b border-slate-700 last:border-0 cursor-pointer
                             transition-colors hover:bg-slate-700/50
                             ${editing?.id === t.id ? 'bg-slate-700/50' : ''}`}>
 
-                {/* Top row: plate · driver · reason + warning icons */}
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                {/* Header: plate · driver + badges */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-white font-semibold text-sm">{t.plate}</span>
                     <span className="text-slate-500 text-xs">·</span>
-                    <span className="text-slate-400 text-xs">{t.driver_name}</span>
-                    <span className="text-slate-500 text-xs">·</span>
-                    <span className="text-slate-400 text-xs truncate">{t.reason}</span>
+                    <span className="text-slate-400 text-xs truncate">{t.driver_name}</span>
                   </div>
                   <div className="flex gap-1 flex-shrink-0 flex-wrap justify-end">
-                    {fieldEdits    && <Badge color="amber">✏</Badge>}
+                    {fieldEdits         && <Badge color="red">✏</Badge>}
                     {t.discrepancy_flag && <Badge color="amber">△ {t.discrepancy_delta}km</Badge>}
-                    {hasNegDelta   && <Badge color="red">↘ 0km</Badge>}
-                    {hasLargeDelta && <Badge color="amber">↗ {t.distance_km}km</Badge>}
-                    {t.speed_flag  && <Badge color="red">⚡ {t.avg_speed_kmh}km/h</Badge>}
+                    {hasNegDelta        && <Badge color="red">↘ 0km</Badge>}
+                    {hasLargeDelta      && <Badge color="amber">↗ {t.distance_km}km</Badge>}
+                    {t.speed_flag       && <Badge color="red">⚡ {t.avg_speed_kmh}km/h</Badge>}
                     {t.status === 'active' && <Badge color="blue">active</Badge>}
                   </div>
                 </div>
 
-                {/* Start (left) | End (right) */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="space-y-0.5">
-                    <div className="text-slate-300">
-                      {t.start_km_confirmed?.toLocaleString()} km
-                      <span className="text-slate-500 ml-1">
-                        {new Date(t.start_time).toLocaleDateString('he-IL')}
-                      </span>
-                    </div>
-                    {t.start_location && (
-                      <div className="text-slate-500 truncate">↑ {t.start_location}</div>
-                    )}
+                {/* Paired rows: start (left) | end (right) */}
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
+                  <div className={hi('start_time')}>
+                    {new Date(t.start_time).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
                   </div>
-                  <div className="space-y-0.5 text-right">
-                    {t.end_km_confirmed != null ? (
-                      <div className="text-slate-300">
-                        {t.end_km_confirmed.toLocaleString()} km
-                        <span className="text-white font-semibold ml-1">{t.distance_km}km</span>
-                        {duration && <span className="text-slate-500 ml-1">{duration}</span>}
-                      </div>
-                    ) : null}
-                    {t.end_location && (
-                      <div className="text-slate-500 truncate">↓ {t.end_location}</div>
-                    )}
+                  <div className="text-slate-400">
+                    {t.end_time
+                      ? new Date(t.end_time).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })
+                      : <span className="text-slate-600">—</span>}
+                    {duration && <span className="text-slate-500 ml-1">({duration})</span>}
                   </div>
+
+                  <div className={hi('start_km')}>
+                    {t.start_km_confirmed?.toLocaleString()} km
+                  </div>
+                  <div className={t.end_km_confirmed != null ? hi('end_km') : ''}>
+                    {t.end_km_confirmed != null
+                      ? <>{t.end_km_confirmed.toLocaleString()} km <span className="text-white font-semibold">+{t.distance_km}</span></>
+                      : <span className="text-slate-600">—</span>}
+                  </div>
+
+                  <div className={`truncate ${hi('start_location')}`}>
+                    {t.start_location || <span className="text-slate-600">—</span>}
+                  </div>
+                  <div className={`truncate ${hi('end_location')}`}>
+                    {t.end_location || <span className="text-slate-600">—</span>}
+                  </div>
+
+                  <div className="text-slate-400 truncate">{t.reason}</div>
+                  <div className="text-slate-400 truncate">{t.approved_by || <span className="text-slate-600">—</span>}</div>
                 </div>
 
                 {t.notes && (
