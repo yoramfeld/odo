@@ -293,4 +293,33 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
   });
 });
 
+// PATCH /api/trips/:id — admin: edit any field of any trip
+router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { startKm, startTime, startLocation, endKm, endTime, endLocation,
+          reason, approvedBy, notes, status } = req.body;
+
+  const { rows: [trip] } = await db.query('SELECT * FROM trips WHERE id = $1', [req.params.id]);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  const { rows } = await db.query(
+    `UPDATE trips SET
+       start_km_confirmed = COALESCE($1, start_km_confirmed),
+       start_time         = COALESCE($2::timestamptz, start_time),
+       start_location     = COALESCE($3, start_location),
+       end_km_confirmed   = COALESCE($4, end_km_confirmed),
+       end_time           = COALESCE($5::timestamptz, end_time),
+       end_location       = COALESCE($6, end_location),
+       reason             = COALESCE($7, reason),
+       approved_by        = COALESCE($8, approved_by),
+       notes              = COALESCE($9, notes),
+       status             = COALESCE($10, status)
+     WHERE id = $11 RETURNING *`,
+    [startKm ?? null, startTime || null, startLocation ?? null,
+     endKm ?? null, endTime || null, endLocation ?? null,
+     reason || null, approvedBy ?? null, notes ?? null,
+     status || null, req.params.id]
+  );
+  res.json(rows[0]);
+});
+
 module.exports = router;

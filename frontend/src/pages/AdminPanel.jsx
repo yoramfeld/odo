@@ -49,6 +49,10 @@ function TripsTab({ cars, drivers }) {
   const [trips, setTrips]   = useState([]);
   const [filters, setFilters] = useState({ from: '', to: '', carId: '', driverId: '' });
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null); // trip object or null
+  const [form, setForm]       = useState({});
+  const [saving, setSaving]   = useState(false);
+  const [editError, setEditError] = useState('');
 
   useEffect(() => { loadTrips(); }, []);
 
@@ -58,6 +62,54 @@ function TripsTab({ cars, drivers }) {
     setTrips(data);
     setLoading(false);
   }
+
+  function toDateTimeLocal(iso) {
+    if (!iso) return '';
+    return new Date(iso).toISOString().slice(0, 16);
+  }
+
+  function openEdit(t) {
+    setForm({
+      startKm:       t.start_km_confirmed ?? '',
+      startTime:     toDateTimeLocal(t.start_time),
+      startLocation: t.start_location ?? '',
+      endKm:         t.end_km_confirmed ?? '',
+      endTime:       toDateTimeLocal(t.end_time),
+      endLocation:   t.end_location ?? '',
+      reason:        t.reason ?? '',
+      approvedBy:    t.approved_by ?? '',
+      notes:         t.notes ?? '',
+    });
+    setEditing(t);
+    setEditError('');
+  }
+
+  function cancelEdit() { setEditing(null); setEditError(''); }
+
+  async function saveEdit() {
+    setSaving(true); setEditError('');
+    try {
+      await api.patch(`/trips/${editing.id}`, {
+        startKm:       form.startKm !== '' ? parseInt(form.startKm) : undefined,
+        startTime:     form.startTime || undefined,
+        startLocation: form.startLocation !== '' ? form.startLocation : undefined,
+        endKm:         form.endKm !== '' ? parseInt(form.endKm) : undefined,
+        endTime:       form.endTime || undefined,
+        endLocation:   form.endLocation !== '' ? form.endLocation : undefined,
+        reason:        form.reason || undefined,
+        approvedBy:    form.approvedBy !== '' ? form.approvedBy : undefined,
+        notes:         form.notes !== '' ? form.notes : undefined,
+      });
+      await loadTrips();
+      setEditing(null);
+    } catch (err) {
+      setEditError(err.response?.data?.error || 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function setF(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
   const filtered = trips.filter(t => {
     if (filters.carId    && String(t.car_id)    !== filters.carId)    return false;
@@ -126,13 +178,86 @@ function TripsTab({ cars, drivers }) {
         </div>
       </SectionCard>
 
+      {/* Edit form */}
+      {editing && (
+        <SectionCard>
+          <div className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-white font-semibold text-sm">
+                Edit Trip — {editing.plate} · {editing.driver_name}
+              </h3>
+              <button onClick={cancelEdit} className="text-slate-500 text-sm">✕</button>
+            </div>
+
+            <div className="border-t border-slate-700 pt-3">
+              <p className="text-slate-500 text-xs uppercase tracking-widest mb-2">Start</p>
+              <div className="grid grid-cols-2 gap-3">
+                <FieldRow label="Start KM">
+                  <Input type="number" value={form.startKm} onChange={e => setF('startKm', e.target.value)} />
+                </FieldRow>
+                <FieldRow label="Start Time">
+                  <Input type="datetime-local" value={form.startTime} onChange={e => setF('startTime', e.target.value)} />
+                </FieldRow>
+              </div>
+              <div className="mt-3">
+                <FieldRow label="Start Location">
+                  <Input value={form.startLocation} onChange={e => setF('startLocation', e.target.value)} placeholder="מיקום יציאה" />
+                </FieldRow>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-700 pt-3">
+              <p className="text-slate-500 text-xs uppercase tracking-widest mb-2">End</p>
+              <div className="grid grid-cols-2 gap-3">
+                <FieldRow label="End KM">
+                  <Input type="number" value={form.endKm} onChange={e => setF('endKm', e.target.value)} />
+                </FieldRow>
+                <FieldRow label="End Time">
+                  <Input type="datetime-local" value={form.endTime} onChange={e => setF('endTime', e.target.value)} />
+                </FieldRow>
+              </div>
+              <div className="mt-3">
+                <FieldRow label="End Location">
+                  <Input value={form.endLocation} onChange={e => setF('endLocation', e.target.value)} placeholder="מיקום סיום" />
+                </FieldRow>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-700 pt-3 space-y-3">
+              <p className="text-slate-500 text-xs uppercase tracking-widest">Trip Details</p>
+              <FieldRow label="Reason">
+                <Input value={form.reason} onChange={e => setF('reason', e.target.value)} />
+              </FieldRow>
+              <FieldRow label="Approved By">
+                <Input value={form.approvedBy} onChange={e => setF('approvedBy', e.target.value)} />
+              </FieldRow>
+              <FieldRow label="Notes">
+                <Input value={form.notes} onChange={e => setF('notes', e.target.value)} />
+              </FieldRow>
+            </div>
+
+            {editError && <p className="text-red-400 text-xs">{editError}</p>}
+            <div className="flex gap-2 pt-1">
+              <button onClick={cancelEdit} className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2.5 text-sm">Cancel</button>
+              <button onClick={saveEdit} disabled={saving}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold rounded-xl py-2.5 text-sm">
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </SectionCard>
+      )}
+
       {/* Table */}
       {loading ? <div className="text-slate-500 text-sm text-center py-6">Loading…</div> : (
         <SectionCard>
           {filtered.length === 0 ? (
             <div className="text-slate-500 text-sm text-center py-8">No trips found</div>
           ) : filtered.map(t => (
-            <div key={t.id} className="px-4 py-3 border-b border-slate-700 last:border-0">
+            <div key={t.id} onClick={() => openEdit(t)}
+              className={`px-4 py-3 border-b border-slate-700 last:border-0 cursor-pointer
+                          transition-colors hover:bg-slate-700/50
+                          ${editing?.id === t.id ? 'bg-slate-700/50' : ''}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
