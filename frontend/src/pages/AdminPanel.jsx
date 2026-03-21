@@ -138,6 +138,7 @@ function TripsTab({ cars, drivers }) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-white font-semibold text-sm">{t.plate}</span>
                     <span className="text-slate-400 text-xs">{t.driver_name}</span>
+                    {t.start_details_manual && <Badge color="amber">✎ פרטי יציאה ידניים</Badge>}
                     {t.discrepancy_flag && <Badge color="amber">⚠ {t.discrepancy_delta} km gap</Badge>}
                     {t.speed_flag       && <Badge color="red">🏎 {t.avg_speed_kmh} km/h</Badge>}
                   </div>
@@ -158,7 +159,7 @@ function TripsTab({ cars, drivers }) {
                     ? <div className="text-white font-bold text-sm">{t.distance_km} km</div>
                     : <Badge color="blue">active</Badge>}
                   <div className="text-slate-500 text-xs mt-0.5">
-                    {t.start_km_confirmed?.toLocaleString()} → {t.end_km_confirmed?.toLocaleString() ?? '…'}
+                    {t.start_km_confirmed?.toLocaleString()}{t.start_details_manual ? ' ✎' : ''} → {t.end_km_confirmed?.toLocaleString() ?? '…'}
                   </div>
                   {t.start_time && t.end_time && (() => {
                     const mins = Math.round((new Date(t.end_time) - new Date(t.start_time)) / 60000);
