@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
-import AutocompleteInput from '../components/AutocompleteInput';
 
 async function getLocationFull() {
   return new Promise(resolve => {
@@ -27,7 +26,6 @@ async function getLocationFull() {
 export default function TripEnd() {
   const { tripId } = useParams();
   const navigate   = useNavigate();
-  const location   = useLocation();
 
   const [trip, setTrip]         = useState(null);
   const [endKm, setEndKm]       = useState('');
@@ -37,35 +35,26 @@ export default function TripEnd() {
   const [error, setError]       = useState('');
   const [canForce, setCanForce] = useState(false);
   const [loading, setLoading]   = useState(false);
-  const [ocrLoading, setOcrLoading]       = useState(false);
-  const [locationText, setLocationText]   = useState('');
-  const [detectedLoc, setDetectedLoc]     = useState(null);
-  const [locationLoading, setLocLoading]  = useState(true);
-  const [gpsCoords, setGpsCoords]         = useState(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   // Post-completion start-details edit
   const [showStartEdit, setShowStartEdit] = useState(false);
-  const [startForm, setStartForm]         = useState({ startKm: '', startTime: '', startLocation: '' });
+  const [startForm, setStartForm]         = useState({ startKm: '', startTime: '' });
   const [startSaving, setStartSaving]     = useState(false);
 
-  const cameraRef  = useRef();
-  const canvasRef  = useRef(null);
+  const cameraRef   = useRef();
+  const canvasRef   = useRef(null);
+  const locationRef = useRef(null); // silently captured GPS address
 
-  async function refreshLocation() {
-    setLocLoading(true);
+  async function fetchLocation() {
     const result = await getLocationFull();
-    if (!result) { setLocLoading(false); return; }
-    setGpsCoords({ lat: result.lat, lng: result.lng });
+    if (!result) return;
     try {
       const { data } = await api.get(`/locations/lookup?lat=${result.lat}&lng=${result.lng}`);
-      const name = data.name || result.address;
-      setDetectedLoc(name);
-      setLocationText(name);
+      locationRef.current = data.name || result.address;
     } catch {
-      setDetectedLoc(result.address);
-      setLocationText(result.address);
+      locationRef.current = result.address;
     }
-    setLocLoading(false);
   }
 
   useEffect(() => {
@@ -74,7 +63,7 @@ export default function TripEnd() {
       setTrip(t);
       prefillStartForm(t);
     });
-    refreshLocation();
+    fetchLocation();
   }, [tripId]);
 
   // ── Image processing (same as POC) ──────────────────────────────────────
@@ -160,7 +149,7 @@ export default function TripEnd() {
     const st = new Date(t.start_time);
     const pad = n => String(n).padStart(2, '0');
     const localDT = `${st.getFullYear()}-${pad(st.getMonth()+1)}-${pad(st.getDate())}T${pad(st.getHours())}:${pad(st.getMinutes())}`;
-    setStartForm({ startKm: String(t.start_km_confirmed ?? ''), startTime: localDT, startLocation: t.start_location ?? '' });
+    setStartForm({ startKm: String(t.start_km_confirmed ?? ''), startTime: localDT });
   }
 
   async function saveStartDetails() {
@@ -168,8 +157,7 @@ export default function TripEnd() {
     const pad = n => String(n).padStart(2, '0');
     const originalTime = `${st.getFullYear()}-${pad(st.getMonth()+1)}-${pad(st.getDate())}T${pad(st.getHours())}:${pad(st.getMinutes())}`;
     const unchanged = startForm.startKm === String(trip.start_km_confirmed ?? '') &&
-                      startForm.startTime === originalTime &&
-                      startForm.startLocation === (trip.start_location ?? '');
+                      startForm.startTime === originalTime;
     if (unchanged) { setShowStartEdit(false); return; }
 
     setStartSaving(true);
@@ -177,8 +165,6 @@ export default function TripEnd() {
       await api.patch(`/trips/${tripId}/start-details`, {
         startKm: parseInt(startForm.startKm) || undefined,
         startTime: startForm.startTime || undefined,
-        startLocation: startForm.startLocation.trim() || undefined,
-        startLocationManual: startForm.startLocation.trim() !== (trip.start_location || ''),
       });
       setShowStartEdit(false);
     } catch (err) {
@@ -195,11 +181,6 @@ export default function TripEnd() {
     if (!endKm) { setError('אנא הזן מד קילומטר'); return; }
 
     setLoading(true);
-    const endLocation = locationText.trim() || undefined;
-    const isManual = locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '';
-    if (isManual && gpsCoords) {
-      api.post('/locations/correct', { ...gpsCoords, name: locationText.trim() }).catch(() => {});
-    }
     try {
       // Send cropped photo as base64 if available
       let endPhotoBase64 = null;
@@ -216,8 +197,7 @@ export default function TripEnd() {
         endKmOcr,
         endKmConfirmed: parseInt(endKm),
         endPhotoBase64,
-        endLocation,
-        endLocationManual: isManual,
+        endLocation: locationRef.current || undefined,
         endKmManual: !canvasRef.current,
         force,
       });
@@ -279,9 +259,6 @@ export default function TripEnd() {
           <div className="text-slate-500 text-xs">
             משך {elapsedText} · {trip.start_km_confirmed?.toLocaleString()} ק״מ
           </div>
-          {trip.start_location && (
-            <div className="text-slate-500 text-xs mt-0.5">📍 {trip.start_location}</div>
-          )}
         </div>
 
         {/* Post-completion: suspicious start/end data */}
@@ -307,14 +284,6 @@ export default function TripEnd() {
                            text-white text-sm focus:outline-none focus:border-amber-500
                            [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
                            [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              <input
-                type="text"
-                value={startForm.startLocation}
-                onChange={e => setStartForm(f => ({ ...f, startLocation: e.target.value }))}
-                placeholder="מיקום יציאה"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
-                           text-white text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
             <button type="button" onClick={saveStartDetails} disabled={startSaving}
@@ -373,31 +342,6 @@ export default function TripEnd() {
               מרחק נסיעה: <span className="text-white font-semibold">{distance} ק״מ</span>
             </p>
           )}
-        </div>
-
-        {/* End location */}
-        <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            מיקום סיום
-            {!locationLoading && locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
-              <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
-            )}
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              value={locationLoading ? '' : locationText}
-              onChange={e => setLocationText(e.target.value)}
-              placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת…'}
-              disabled={locationLoading}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pl-10
-                         text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
-            />
-            <button type="button" onClick={refreshLocation} disabled={locationLoading}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base leading-none disabled:opacity-30">
-              📍
-            </button>
-          </div>
         </div>
 
         {warn && (

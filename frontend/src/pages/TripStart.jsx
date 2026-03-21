@@ -42,29 +42,19 @@ export default function TripStart() {
   const [ocrLoading, setOcrLoading]       = useState(false);
   const [previewSrc, setPreviewSrc]       = useState(null);
   const [confidence, setConf]             = useState(null);
-  const [locationText, setLocationText]   = useState('');
-  const [detectedLoc, setDetectedLoc]     = useState(null);
-  const [locationLoading, setLocLoading]  = useState(false);
-  const [gpsCoords, setGpsCoords]         = useState(null);
+  const cameraRef   = useRef();
+  const canvasRef   = useRef(null);
+  const locationRef = useRef(null); // silently captured GPS address
 
-  const cameraRef = useRef();
-  const canvasRef = useRef(null);
-
-  async function refreshLocation() {
-    setLocLoading(true);
+  async function fetchLocation() {
     const result = await getLocationFull();
-    if (!result) { setLocLoading(false); return; }
-    setGpsCoords({ lat: result.lat, lng: result.lng });
+    if (!result) return;
     try {
       const { data } = await api.get(`/locations/lookup?lat=${result.lat}&lng=${result.lng}`);
-      const name = data.name || result.address;
-      setDetectedLoc(name);
-      setLocationText(name);
+      locationRef.current = data.name || result.address;
     } catch {
-      setDetectedLoc(result.address);
-      setLocationText(result.address);
+      locationRef.current = result.address;
     }
-    setLocLoading(false);
   }
 
   // Load cars + suggestions + location
@@ -73,7 +63,7 @@ export default function TripStart() {
       .then(res => setCars(res.data))
       .finally(() => setCarsLoading(false));
     api.get('/trips/suggestions').then(r => setSuggestions(r.data)).catch(() => {});
-    refreshLocation();
+    fetchLocation();
   }, []);
 
   // When car changes, fetch last known KM
@@ -171,18 +161,13 @@ export default function TripStart() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const isManual = locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '';
-    if (isManual && gpsCoords) {
-      api.post('/locations/correct', { ...gpsCoords, name: locationText.trim() }).catch(() => {});
-    }
     try {
       const { data } = await api.post('/trips/start', {
         carId: parseInt(carId),
         startKm: parseInt(startKm),
         reason,
         notes: notes || undefined,
-        startLocation: locationText.trim() || undefined,
-        startLocationManual: isManual,
+        startLocation: locationRef.current || undefined,
         approvedBy: approvedBy.trim() || undefined,
       });
       navigate('/');
@@ -192,8 +177,6 @@ export default function TripStart() {
       setLoading(false);
     }
   }
-
-  const selectedCar = cars.find(c => String(c.id) === carId);
 
   return (
     <div dir="rtl" className="min-h-dvh flex flex-col max-w-lg mx-auto">
@@ -339,38 +322,6 @@ export default function TripStart() {
             className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                        text-white focus:outline-none focus:border-blue-500 resize-none"
           />
-        </div>
-
-        {/* Location */}
-        <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            מיקום יציאה
-            {locationText.trim() !== (detectedLoc || '').trim() && locationText.trim() !== '' && (
-              <span className="mr-2 normal-case text-amber-400 text-xs">(ידני)</span>
-            )}
-          </label>
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <AutocompleteInput
-                value={locationText}
-                onChange={setLocationText}
-                suggestions={suggestions.start_location}
-                placeholder={locationLoading ? 'מאתר מיקום…' : 'הזן כתובת…'}
-                disabled={locationLoading}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                           text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
-              />
-            </div>
-            <button type="button" onClick={refreshLocation} disabled={locationLoading}
-              className="text-slate-400 text-xl leading-none disabled:opacity-30 flex-shrink-0">
-              {locationLoading
-                ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                  </svg>
-                : '📍'}
-            </button>
-          </div>
         </div>
 
         {error && (
