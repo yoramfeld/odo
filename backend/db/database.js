@@ -6,6 +6,10 @@ const pool = new Pool({
   max: 10,
 });
 
+pool.on('connect', client => {
+  client.query("SET timezone = 'UTC'");
+});
+
 pool.on('error', (err) => {
   console.error('Unexpected DB pool error', err);
 });
