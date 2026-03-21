@@ -183,8 +183,8 @@ router.patch('/:id/start-details', requireAuth, async (req, res) => {
 router.post('/start', requireAuth, async (req, res) => {
   const { carId, startKm, reason, notes, startLocation, startLocationGps, approvedBy } = req.body;
   const manualFields = startLocation ? 'start_location' : null;
-  if (!carId || startKm == null || !reason || !approvedBy) {
-    return res.status(400).json({ error: 'carId, startKm, reason and approvedBy are required' });
+  if (!carId || startKm == null || !reason || !approvedBy || !startLocation) {
+    return res.status(400).json({ error: 'carId, startKm, reason, approvedBy and startLocation are required' });
   }
 
   // Only one active trip per car
@@ -227,6 +227,9 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
   if (endKmConfirmed == null) {
     return res.status(400).json({ error: 'endKmConfirmed is required' });
   }
+  if (!endLocation) {
+    return res.status(400).json({ error: 'endLocation is required' });
+  }
 
   const { rows: [trip] } = await db.query(
     'SELECT * FROM trips WHERE id = $1', [req.params.id]
@@ -236,10 +239,9 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
   if (req.user.role !== 'admin' && trip.driver_id !== req.user.id) {
     return res.status(403).json({ error: 'אין הרשאה' });
   }
-  const endTime = new Date();
   const effectiveStartKm   = overrideStartKm   ?? trip.start_km_confirmed;
   const effectiveStartTime = overrideStartTime ? new Date(overrideStartTime) : trip.start_time;
-  const validation = validateEndKm(effectiveStartKm, effectiveStartTime, endKmConfirmed, endTime);
+  const validation = validateEndKm(effectiveStartKm, effectiveStartTime, endKmConfirmed, new Date());
 
   const finalKm = validation.corrected ?? endKmConfirmed;
   const photoBuffer = endPhotoBase64 ? Buffer.from(endPhotoBase64, 'base64') : null;
@@ -259,22 +261,22 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
        end_km_ocr       = $1,
        end_km_confirmed = $2,
        end_photo        = $3,
-       end_time         = $4,
+       end_time         = NOW(),
        status           = 'completed',
-       speed_flag       = $5,
-       avg_speed_kmh    = $6,
-       photo_expires_at = $7,
-       end_location          = $8,
-       end_location_gps      = $9,
-       manual_fields         = $10,
-       start_km_confirmed    = COALESCE($11, start_km_confirmed),
-       start_time            = COALESCE($12::timestamptz, start_time),
-       start_location        = COALESCE($13, start_location),
-       reason                = COALESCE($14, reason),
-       approved_by           = COALESCE($15, approved_by),
-       notes                 = COALESCE($16, notes)
-     WHERE id = $17 RETURNING *`,
-    [endKmOcr || null, finalKm, photoBuffer, endTime,
+       speed_flag       = $4,
+       avg_speed_kmh    = $5,
+       photo_expires_at = $6,
+       end_location          = $7,
+       end_location_gps      = $8,
+       manual_fields         = $9,
+       start_km_confirmed    = COALESCE($10, start_km_confirmed),
+       start_time            = COALESCE($11::timestamptz, start_time),
+       start_location        = COALESCE($12, start_location),
+       reason                = COALESCE($13, reason),
+       approved_by           = COALESCE($14, approved_by),
+       notes                 = COALESCE($15, notes)
+     WHERE id = $16 RETURNING *`,
+    [endKmOcr || null, finalKm, photoBuffer,
      validation.speedFlag || false, validation.speed || null,
      photoBuffer ? expiresAt : null, endLocation || null,
      endLocationGps || null, manualFields,
