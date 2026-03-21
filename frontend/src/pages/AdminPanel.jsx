@@ -191,7 +191,7 @@ function CarsTab() {
   }
 
   function openNew() {
-    setForm({ plate: '', make: '', model: '', year: '', current_km: '' });
+    setForm({ plate: '', make: '', model: '', current_km: '' });
     setEditing('new');
     setError('');
   }
@@ -251,9 +251,6 @@ function CarsTab() {
                   inputMode="numeric"
                 />
               </FieldRow>
-              <FieldRow label="Year">
-                <Input type="number" value={form.year || ''} onChange={e => setF('year', e.target.value)} placeholder="2022" />
-              </FieldRow>
               <FieldRow label="Make">
                 <Input value={form.make || ''} onChange={e => setF('make', e.target.value)} placeholder="Toyota" />
               </FieldRow>
@@ -283,7 +280,7 @@ function CarsTab() {
           <div key={c.id} className="flex items-center gap-3 px-4 py-3 border-b border-slate-700 last:border-0">
             <div className="flex-1">
               <div className="text-white font-semibold text-sm">{c.plate}</div>
-              <div className="text-slate-400 text-xs">{c.make} {c.model} {c.year ? `· ${c.year}` : ''}</div>
+              <div className="text-slate-400 text-xs">{c.make} {c.model}</div>
               <div className="text-slate-500 text-xs">{c.current_km?.toLocaleString()} km</div>
             </div>
             <button onClick={() => openEdit(c)}

@@ -82,6 +82,7 @@ router.get('/', requireAuth, async (req, res) => {
             t.speed_flag, t.avg_speed_kmh,
             t.start_location, t.start_location_manual,
             t.end_location, t.end_location_manual,
+            t.approved_by,
             (t.end_km_confirmed - t.start_km_confirmed) AS distance_km
      FROM trips t
      JOIN cars  c ON c.id = t.car_id
@@ -92,6 +93,25 @@ router.get('/', requireAuth, async (req, res) => {
     isAdmin ? [] : [req.user.id]
   );
   res.json(rows);
+});
+
+// GET /api/trips/suggestions — preset + recent distinct reason & approved_by for this driver
+router.get('/suggestions', requireAuth, async (req, res) => {
+  const REASON_PRESETS   = ['מנהלי', 'בט"ש', 'מבצעי', 'איסוף/פיזור', 'תדלוק'];
+  const APPROVED_PRESETS = ['ק.אגם', 'אח"מ'];
+
+  const [{ rows: rr }, { rows: ar }] = await Promise.all([
+    db.query(`SELECT DISTINCT reason FROM trips WHERE driver_id = $1 AND reason IS NOT NULL ORDER BY reason LIMIT 30`, [req.user.id]),
+    db.query(`SELECT DISTINCT approved_by FROM trips WHERE driver_id = $1 AND approved_by IS NOT NULL ORDER BY approved_by LIMIT 30`, [req.user.id]),
+  ]);
+
+  const recentReasons   = rr.map(r => r.reason).filter(r => !REASON_PRESETS.includes(r));
+  const recentApproved  = ar.map(r => r.approved_by).filter(r => !APPROVED_PRESETS.includes(r));
+
+  res.json({
+    reason:      [...REASON_PRESETS, ...recentReasons],
+    approved_by: [...APPROVED_PRESETS, ...recentApproved],
+  });
 });
 
 // GET /api/trips/:id
@@ -125,9 +145,34 @@ router.get('/car/:carId/last-end-km', requireAuth, async (req, res) => {
   res.json(rows[0] || { last_km: null });
 });
 
+// PATCH /api/trips/:id/start-details — edit start fields of an active trip
+router.patch('/:id/start-details', requireAuth, async (req, res) => {
+  const { startKm, startLocation, startLocationManual, reason, approvedBy } = req.body;
+
+  const { rows: [trip] } = await db.query('SELECT * FROM trips WHERE id = $1', [req.params.id]);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+  if (trip.status !== 'active') return res.status(409).json({ error: 'Trip is not active' });
+  if (req.user.role !== 'admin' && trip.driver_id !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const { rows } = await db.query(
+    `UPDATE trips SET
+       start_km_confirmed    = COALESCE($1, start_km_confirmed),
+       start_location        = COALESCE($2, start_location),
+       start_location_manual = COALESCE($3, start_location_manual),
+       reason                = COALESCE($4, reason),
+       approved_by           = $5
+     WHERE id = $6 RETURNING *`,
+    [startKm ?? null, startLocation || null, startLocationManual ?? null,
+     reason || null, approvedBy || null, req.params.id]
+  );
+  res.json(rows[0]);
+});
+
 // POST /api/trips/start
 router.post('/start', requireAuth, async (req, res) => {
-  const { carId, startKm, reason, notes, startLocation, startLocationManual } = req.body;
+  const { carId, startKm, reason, notes, startLocation, startLocationManual, approvedBy } = req.body;
   if (!carId || startKm == null || !reason) {
     return res.status(400).json({ error: 'carId, startKm and reason are required' });
   }
@@ -154,11 +199,11 @@ router.post('/start', requireAuth, async (req, res) => {
 
   const { rows } = await db.query(
     `INSERT INTO trips (car_id, driver_id, start_km_confirmed, start_time, reason, notes,
-                        discrepancy_flag, discrepancy_delta, start_location, start_location_manual)
-     VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9) RETURNING *`,
+                        discrepancy_flag, discrepancy_delta, start_location, start_location_manual, approved_by)
+     VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
     [carId, req.user.id, startKm, reason, notes || null,
      discrepancy, discrepancy ? delta : null,
-     startLocation || null, !!startLocationManual]
+     startLocation || null, !!startLocationManual, approvedBy || null]
   );
 
   res.status(201).json(rows[0]);

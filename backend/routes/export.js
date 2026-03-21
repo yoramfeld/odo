@@ -36,6 +36,7 @@ router.get('/trips', requireAuth, requireAdmin, async (req, res) => {
        t.start_location                                            AS "Start Location",
        t.end_location                                              AS "End Location",
        t.reason                                                    AS "Reason",
+       t.approved_by                                               AS "Approved By",
        t.notes                                                     AS "Notes",
        CASE WHEN t.discrepancy_flag THEN 'Yes' ELSE '' END        AS "Discrepancy Flag",
        t.discrepancy_delta                                         AS "Discrepancy Delta",

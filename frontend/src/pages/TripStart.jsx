@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
+import AutocompleteInput from '../components/AutocompleteInput';
 
 async function getLocationFull() {
   return new Promise(resolve => {
@@ -30,8 +31,10 @@ export default function TripStart() {
   const [carId, setCarId]       = useState('');
   const [lastKm, setLastKm]     = useState(null);
   const [startKm, setStartKm]   = useState('');
-  const [reason, setReason]     = useState('');
-  const [notes, setNotes]       = useState('');
+  const [reason, setReason]         = useState('');
+  const [approvedBy, setApprovedBy] = useState('');
+  const [notes, setNotes]           = useState('');
+  const [suggestions, setSuggestions] = useState({ reason: [], approved_by: [] });
   const [warn, setWarn]         = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
@@ -65,11 +68,12 @@ export default function TripStart() {
     });
   }, []);
 
-  // Load cars
+  // Load cars + suggestions
   useEffect(() => {
     api.get('/cars')
       .then(res => setCars(res.data))
       .finally(() => setCarsLoading(false));
+    api.get('/trips/suggestions').then(r => setSuggestions(r.data)).catch(() => {});
   }, []);
 
   // When car changes, fetch last known KM
@@ -179,6 +183,7 @@ export default function TripStart() {
         notes: notes || undefined,
         startLocation: locationText.trim() || undefined,
         startLocationManual: isManual,
+        approvedBy: approvedBy.trim() || undefined,
       });
       navigate(`/trip/end/${data.id}`);
     } catch (err) {
@@ -219,7 +224,7 @@ export default function TripStart() {
               <option value="">בחר רכב…</option>
               {cars.map(c => (
                 <option key={c.id} value={c.id}>
-                  {c.plate} — {c.make} {c.model} {c.year ? `(${c.year})` : ''}
+                  {c.plate} — {c.make} {c.model}
                 </option>
               ))}
             </select>
@@ -297,12 +302,29 @@ export default function TripStart() {
             <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
               סיבת הנסיעה
             </label>
-            <input
-              type="text"
+            <AutocompleteInput
               value={reason}
-              onChange={e => setReason(e.target.value)}
-              placeholder='לדוגמה: בט"ש, איסוף ציוד…'
+              onChange={setReason}
+              suggestions={suggestions.reason}
+              placeholder="מנהלי, בט״ש, מבצעי…"
               required
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                         text-white focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        )}
+
+        {/* Approved by */}
+        {carId && (
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+              באישור
+            </label>
+            <AutocompleteInput
+              value={approvedBy}
+              onChange={setApprovedBy}
+              suggestions={suggestions.approved_by}
+              placeholder="ק.אגם, אח״מ…"
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                          text-white focus:outline-none focus:border-blue-500"
             />

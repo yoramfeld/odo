@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
+import AutocompleteInput from '../components/AutocompleteInput';
 
 async function getLocationFull() {
   return new Promise(resolve => {
@@ -40,11 +41,31 @@ export default function TripEnd() {
   const [locationLoading, setLocLoading]  = useState(true);
   const [gpsCoords, setGpsCoords]         = useState(null);
 
+  // Forgotten-start edit
+  const [showStartEdit, setShowStartEdit]   = useState(false);
+  const [startForm, setStartForm]           = useState({ startKm: '', reason: '', approvedBy: '', startLocation: '' });
+  const [startSaving, setStartSaving]       = useState(false);
+  const [startEditDone, setStartEditDone]   = useState(false);
+  const [suggestions, setSuggestions]       = useState({ reason: [], approved_by: [] });
+
   const cameraRef  = useRef();
   const canvasRef  = useRef(null);
 
   useEffect(() => {
-    api.get(`/trips/${tripId}`).then(res => setTrip(res.data));
+    api.get(`/trips/${tripId}`).then(res => {
+      const t = res.data;
+      setTrip(t);
+      const elapsed = (Date.now() - new Date(t.start_time)) / 60000;
+      if (elapsed < 3) setShowStartEdit(true);
+      setStartForm(f => ({
+        ...f,
+        startKm: String(t.start_km_confirmed ?? ''),
+        reason: t.reason ?? '',
+        approvedBy: t.approved_by ?? '',
+        startLocation: t.start_location ?? '',
+      }));
+    });
+    api.get('/trips/suggestions').then(r => setSuggestions(r.data)).catch(() => {});
     getLocationFull().then(async result => {
       if (!result) { setLocLoading(false); return; }
       setGpsCoords({ lat: result.lat, lng: result.lng });
@@ -140,6 +161,26 @@ export default function TripEnd() {
                         : 'bg-red-950 text-red-400 border-red-800';
   }
 
+  async function saveStartDetails() {
+    setStartSaving(true);
+    try {
+      const updated = await api.patch(`/trips/${tripId}/start-details`, {
+        startKm: parseInt(startForm.startKm) || undefined,
+        startLocation: startForm.startLocation.trim() || undefined,
+        startLocationManual: startForm.startLocation.trim() !== (trip.start_location || ''),
+        reason: startForm.reason.trim() || undefined,
+        approvedBy: startForm.approvedBy.trim() || undefined,
+      });
+      setTrip(updated.data);
+      setShowStartEdit(false);
+      setStartEditDone(true);
+    } catch (err) {
+      setError(err.response?.data?.error || 'שגיאה בשמירת פרטי יציאה');
+    } finally {
+      setStartSaving(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -226,6 +267,66 @@ export default function TripEnd() {
             <div className="text-slate-500 text-xs mt-0.5">📍 {trip.start_location}</div>
           )}
         </div>
+
+        {/* Forgotten-start banner */}
+        {(showStartEdit || startEditDone) && (
+          <div className={`rounded-2xl border p-4 space-y-3 ${startEditDone ? 'bg-green-950 border-green-800' : 'bg-amber-950 border-amber-800'}`}>
+            {startEditDone ? (
+              <p className="text-green-400 text-sm">✓ פרטי היציאה עודכנו</p>
+            ) : (
+              <>
+                <p className="text-amber-400 text-sm font-semibold">שכחת לרשום יציאה? עדכן פרטים</p>
+                <div className="space-y-2">
+                  <input
+                    type="number" inputMode="numeric"
+                    value={startForm.startKm}
+                    onChange={e => setStartForm(f => ({ ...f, startKm: e.target.value }))}
+                    placeholder="מד ק״מ בהתחלה"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
+                               text-white text-sm focus:outline-none focus:border-amber-500
+                               [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
+                               [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <AutocompleteInput
+                    value={startForm.reason}
+                    onChange={v => setStartForm(f => ({ ...f, reason: v }))}
+                    suggestions={suggestions.reason}
+                    placeholder="סיבת הנסיעה"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
+                               text-white text-sm focus:outline-none focus:border-amber-500"
+                  />
+                  <AutocompleteInput
+                    value={startForm.approvedBy}
+                    onChange={v => setStartForm(f => ({ ...f, approvedBy: v }))}
+                    suggestions={suggestions.approved_by}
+                    placeholder="באישור"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
+                               text-white text-sm focus:outline-none focus:border-amber-500"
+                  />
+                  <input
+                    type="text"
+                    value={startForm.startLocation}
+                    onChange={e => setStartForm(f => ({ ...f, startLocation: e.target.value }))}
+                    placeholder="מיקום יציאה"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
+                               text-white text-sm focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setShowStartEdit(false)}
+                    className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2 text-sm">
+                    ביטול
+                  </button>
+                  <button type="button" onClick={saveStartDetails} disabled={startSaving}
+                    className="flex-1 bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                               text-white font-semibold rounded-xl py-2 text-sm">
+                    {startSaving ? 'שומר…' : 'שמור פרטי יציאה'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Photo */}
         <div>
