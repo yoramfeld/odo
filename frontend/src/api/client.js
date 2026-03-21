@@ -8,9 +8,19 @@ api.interceptors.request.use(config => {
   return config;
 });
 
+// Normalise error so err.response.data.error is always a string
+function normaliseError(err) {
+  const data = err.response?.data;
+  if (data && typeof data.error === 'object' && data.error !== null) {
+    data.error = data.error.message || JSON.stringify(data.error);
+  }
+  return err;
+}
+
 api.interceptors.response.use(
   res => res,
   err => {
+    normaliseError(err);
     if (err.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
