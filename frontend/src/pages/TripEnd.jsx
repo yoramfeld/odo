@@ -49,13 +49,10 @@ export default function TripEnd() {
   const set = k => v => setForm(f => ({ ...f, [k]: v }));
 
   function prefillForm(t) {
-    const st  = new Date(t.start_time);
-    const pad = n => String(n).padStart(2, '0');
-    const localDT = `${st.getFullYear()}-${pad(st.getMonth()+1)}-${pad(st.getDate())}T${pad(st.getHours())}:${pad(st.getMinutes())}`;
     setForm(f => ({
       ...f,
       startKm:       String(t.start_km_confirmed ?? ''),
-      startTime:     localDT,
+      startTime:     new Date(t.start_time).toISOString().slice(0, 16),
       startLocation: t.start_location ?? '',
       reason:        t.reason ?? '',
       approvedBy:    t.approved_by ?? '',
