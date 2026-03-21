@@ -329,13 +329,14 @@ export default function TripStart() {
         {/* Location */}
         <div>
           <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            מיקום יציאה <span className="normal-case text-slate-600">(אופציונלי)</span>
+            מיקום יציאה
           </label>
           <AutocompleteInput
             value={locationText}
             onChange={setLocationText}
             suggestions={suggestions.start_location}
-            placeholder="הזן כתובת…"
+            placeholder="הזן מיקום…"
+            required
             className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                        text-white text-sm focus:outline-none focus:border-blue-500"
           />

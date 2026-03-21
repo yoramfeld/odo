@@ -33,12 +33,13 @@ function FieldRow({ label, children }) {
   );
 }
 
-function Input({ ...props }) {
+function Input({ highlight, ...props }) {
   return (
     <input
       {...props}
-      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5
-                 text-white text-sm focus:outline-none focus:border-blue-500"
+      className={`w-full bg-slate-900 border rounded-xl px-3 py-2.5
+                 text-white text-sm focus:outline-none focus:border-blue-500
+                 ${highlight ? 'border-red-600 bg-red-950/20 text-red-300' : 'border-slate-700'}`}
     />
   );
 }
@@ -179,122 +180,148 @@ function TripsTab({ cars, drivers }) {
       </SectionCard>
 
       {/* Edit form */}
-      {editing && (
-        <SectionCard>
-          <div className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-white font-semibold text-sm">
-                Edit Trip — {editing.plate} · {editing.driver_name}
-              </h3>
-              <button onClick={cancelEdit} className="text-slate-500 text-sm">✕</button>
-            </div>
+      {editing && (() => {
+        const mf = new Set((editing.manual_fields || '').split(',').filter(Boolean));
+        return (
+          <SectionCard>
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-white font-semibold text-sm">
+                  Edit Trip — {editing.plate} · {editing.driver_name}
+                </h3>
+                <button onClick={cancelEdit} className="text-slate-500 text-sm">✕</button>
+              </div>
 
-            <div className="border-t border-slate-700 pt-3">
-              <p className="text-slate-500 text-xs uppercase tracking-widest mb-2">Start</p>
-              <div className="grid grid-cols-2 gap-3">
-                <FieldRow label="Start KM">
-                  <Input type="number" value={form.startKm} onChange={e => setF('startKm', e.target.value)} />
-                </FieldRow>
-                <FieldRow label="Start Time">
-                  <Input type="datetime-local" value={form.startTime} onChange={e => setF('startTime', e.target.value)} />
+              <div className="border-t border-slate-700 pt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <FieldRow label="Start Time">
+                    <Input type="datetime-local" value={form.startTime} onChange={e => setF('startTime', e.target.value)}
+                      highlight={mf.has('start_time')} />
+                  </FieldRow>
+                  <FieldRow label="End Time">
+                    <Input type="datetime-local" value={form.endTime} onChange={e => setF('endTime', e.target.value)} />
+                  </FieldRow>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FieldRow label="Start KM">
+                    <Input type="number" value={form.startKm} onChange={e => setF('startKm', e.target.value)}
+                      highlight={mf.has('start_km')} />
+                  </FieldRow>
+                  <FieldRow label="End KM">
+                    <Input type="number" value={form.endKm} onChange={e => setF('endKm', e.target.value)}
+                      highlight={mf.has('end_km')} />
+                  </FieldRow>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FieldRow label="Start Location">
+                    <Input value={form.startLocation} onChange={e => setF('startLocation', e.target.value)}
+                      placeholder="מיקום יציאה" highlight={mf.has('start_location')} />
+                  </FieldRow>
+                  <FieldRow label="End Location">
+                    <Input value={form.endLocation} onChange={e => setF('endLocation', e.target.value)}
+                      placeholder="מיקום סיום" highlight={mf.has('end_location')} />
+                  </FieldRow>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FieldRow label="Reason">
+                    <Input value={form.reason} onChange={e => setF('reason', e.target.value)} />
+                  </FieldRow>
+                  <FieldRow label="Approved By">
+                    <Input value={form.approvedBy} onChange={e => setF('approvedBy', e.target.value)} />
+                  </FieldRow>
+                </div>
+                <FieldRow label="Notes">
+                  <Input value={form.notes} onChange={e => setF('notes', e.target.value)} />
                 </FieldRow>
               </div>
-              <div className="mt-3">
-                <FieldRow label="Start Location">
-                  <Input value={form.startLocation} onChange={e => setF('startLocation', e.target.value)} placeholder="מיקום יציאה" />
-                </FieldRow>
+
+              {editError && <p className="text-red-400 text-xs">{editError}</p>}
+              <div className="flex gap-2 pt-1">
+                <button onClick={cancelEdit} className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2.5 text-sm">Cancel</button>
+                <button onClick={saveEdit} disabled={saving}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold rounded-xl py-2.5 text-sm">
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
               </div>
             </div>
-
-            <div className="border-t border-slate-700 pt-3">
-              <p className="text-slate-500 text-xs uppercase tracking-widest mb-2">End</p>
-              <div className="grid grid-cols-2 gap-3">
-                <FieldRow label="End KM">
-                  <Input type="number" value={form.endKm} onChange={e => setF('endKm', e.target.value)} />
-                </FieldRow>
-                <FieldRow label="End Time">
-                  <Input type="datetime-local" value={form.endTime} onChange={e => setF('endTime', e.target.value)} />
-                </FieldRow>
-              </div>
-              <div className="mt-3">
-                <FieldRow label="End Location">
-                  <Input value={form.endLocation} onChange={e => setF('endLocation', e.target.value)} placeholder="מיקום סיום" />
-                </FieldRow>
-              </div>
-            </div>
-
-            <div className="border-t border-slate-700 pt-3 space-y-3">
-              <p className="text-slate-500 text-xs uppercase tracking-widest">Trip Details</p>
-              <FieldRow label="Reason">
-                <Input value={form.reason} onChange={e => setF('reason', e.target.value)} />
-              </FieldRow>
-              <FieldRow label="Approved By">
-                <Input value={form.approvedBy} onChange={e => setF('approvedBy', e.target.value)} />
-              </FieldRow>
-              <FieldRow label="Notes">
-                <Input value={form.notes} onChange={e => setF('notes', e.target.value)} />
-              </FieldRow>
-            </div>
-
-            {editError && <p className="text-red-400 text-xs">{editError}</p>}
-            <div className="flex gap-2 pt-1">
-              <button onClick={cancelEdit} className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2.5 text-sm">Cancel</button>
-              <button onClick={saveEdit} disabled={saving}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold rounded-xl py-2.5 text-sm">
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </SectionCard>
-      )}
+          </SectionCard>
+        );
+      })()}
 
       {/* Table */}
       {loading ? <div className="text-slate-500 text-sm text-center py-6">Loading…</div> : (
         <SectionCard>
           {filtered.length === 0 ? (
             <div className="text-slate-500 text-sm text-center py-8">No trips found</div>
-          ) : filtered.map(t => (
-            <div key={t.id} onClick={() => openEdit(t)}
-              className={`px-4 py-3 border-b border-slate-700 last:border-0 cursor-pointer
-                          transition-colors hover:bg-slate-700/50
-                          ${editing?.id === t.id ? 'bg-slate-700/50' : ''}`}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+          ) : filtered.map(t => {
+            const manualArr = (t.manual_fields || '').split(',').filter(Boolean);
+            const fieldEdits = manualArr.some(f =>
+              ['start_km','start_time','start_location','end_km','end_location'].includes(f));
+            const hasNegDelta   = manualArr.includes('negative_delta');
+            const hasLargeDelta = manualArr.includes('large_delta');
+            const mins = t.start_time && t.end_time
+              ? Math.round((new Date(t.end_time) - new Date(t.start_time)) / 60000) : null;
+            const duration = mins != null
+              ? `${Math.floor(mins/60)}:${String(mins%60).padStart(2,'0')}` : null;
+
+            return (
+              <div key={t.id} onClick={() => openEdit(t)}
+                className={`px-4 py-3 border-b border-slate-700 last:border-0 cursor-pointer
+                            transition-colors hover:bg-slate-700/50
+                            ${editing?.id === t.id ? 'bg-slate-700/50' : ''}`}>
+
+                {/* Top row: plate · driver · reason + warning icons */}
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                     <span className="text-white font-semibold text-sm">{t.plate}</span>
+                    <span className="text-slate-500 text-xs">·</span>
                     <span className="text-slate-400 text-xs">{t.driver_name}</span>
-                    {t.manual_fields && <Badge color="amber">✎ {t.manual_fields}</Badge>}
-                    {t.discrepancy_flag && <Badge color="amber">⚠ {t.discrepancy_delta} km gap</Badge>}
-                    {t.speed_flag       && <Badge color="red">🏎 {t.avg_speed_kmh} km/h</Badge>}
+                    <span className="text-slate-500 text-xs">·</span>
+                    <span className="text-slate-400 text-xs truncate">{t.reason}</span>
                   </div>
-                  <div className="text-slate-400 text-xs mt-0.5 truncate">{t.reason}</div>
-                  <div className="text-slate-600 text-xs mt-0.5">
-                    {new Date(t.start_time).toLocaleDateString('he-IL')}
-                    {t.notes && <span className="ml-2 italic">{t.notes}</span>}
+                  <div className="flex gap-1 flex-shrink-0 flex-wrap justify-end">
+                    {fieldEdits    && <Badge color="amber">✏</Badge>}
+                    {t.discrepancy_flag && <Badge color="amber">△ {t.discrepancy_delta}km</Badge>}
+                    {hasNegDelta   && <Badge color="red">↘ 0km</Badge>}
+                    {hasLargeDelta && <Badge color="amber">↗ {t.distance_km}km</Badge>}
+                    {t.speed_flag  && <Badge color="red">⚡ {t.avg_speed_kmh}km/h</Badge>}
+                    {t.status === 'active' && <Badge color="blue">active</Badge>}
                   </div>
-                  {t.start_location && (
-                    <div className="text-slate-600 text-xs mt-0.5 truncate">↑ {t.start_location}</div>
-                  )}
-                  {t.end_location && (
-                    <div className="text-slate-600 text-xs mt-0.5 truncate">↓ {t.end_location}</div>
-                  )}
                 </div>
-                <div className="text-right flex-shrink-0">
-                  {t.distance_km != null
-                    ? <div className="text-white font-bold text-sm">{t.distance_km} km</div>
-                    : <Badge color="blue">active</Badge>}
-                  <div className="text-slate-500 text-xs mt-0.5">
-                    {t.start_km_confirmed?.toLocaleString()} → {t.end_km_confirmed?.toLocaleString() ?? '…'}
+
+                {/* Start (left) | End (right) */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="space-y-0.5">
+                    <div className="text-slate-300">
+                      {t.start_km_confirmed?.toLocaleString()} km
+                      <span className="text-slate-500 ml-1">
+                        {new Date(t.start_time).toLocaleDateString('he-IL')}
+                      </span>
+                    </div>
+                    {t.start_location && (
+                      <div className="text-slate-500 truncate">↑ {t.start_location}</div>
+                    )}
                   </div>
-                  {t.start_time && t.end_time && (() => {
-                    const mins = Math.round((new Date(t.end_time) - new Date(t.start_time)) / 60000);
-                    const h = Math.floor(mins / 60), m = mins % 60;
-                    return <div className="text-slate-500 text-xs">{h}:{String(m).padStart(2,'0')}</div>;
-                  })()}
+                  <div className="space-y-0.5 text-right">
+                    {t.end_km_confirmed != null ? (
+                      <div className="text-slate-300">
+                        {t.end_km_confirmed.toLocaleString()} km
+                        <span className="text-white font-semibold ml-1">{t.distance_km}km</span>
+                        {duration && <span className="text-slate-500 ml-1">{duration}</span>}
+                      </div>
+                    ) : null}
+                    {t.end_location && (
+                      <div className="text-slate-500 truncate">↓ {t.end_location}</div>
+                    )}
+                  </div>
                 </div>
+
+                {t.notes && (
+                  <div className="text-slate-600 text-xs mt-1 italic truncate">{t.notes}</div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </SectionCard>
       )}
     </div>

@@ -198,7 +198,9 @@ export default function TripEnd() {
     e.preventDefault();
     setError('');
     setAnomaly(null);
-    if (!form.endKm) { setError('אנא הזן מד קילומטר סיום'); return; }
+    if (!form.endKm) { setActiveTab('end'); setError('אנא הזן מד קילומטר סיום'); return; }
+    if (!form.endLocation.trim()) { setActiveTab('end'); setError('אנא הזן מיקום סיום'); return; }
+    if (!form.reason.trim()) { setActiveTab('start'); setError('אנא הזן סיבת נסיעה'); return; }
     const delta = parseInt(form.endKm) - parseInt(form.startKm);
     if (delta < 0)  { setAnomaly('מד ק״מ סיום נמוך מתחילת הנסיעה'); return; }
     if (delta === 0) { setAnomaly('מד ק״מ סיום זהה לתחילת הנסיעה'); return; }
@@ -295,7 +297,7 @@ export default function TripEnd() {
             <div>
               <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מיקום סיום</label>
               <AutocompleteInput value={form.endLocation} onChange={set('endLocation')}
-                suggestions={suggestions.end_location || []} placeholder="הזן כתובת…" className={fieldClass} />
+                suggestions={suggestions.end_location || []} placeholder="הזן מיקום…" className={fieldClass} />
             </div>
 
           </>}
@@ -303,11 +305,18 @@ export default function TripEnd() {
           {/* ── Start tab ── */}
           {activeTab === 'start' && <>
 
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מד ק״מ יציאה</label>
-              <input type="number" inputMode="numeric" value={form.startKm}
-                onChange={e => set('startKm')(e.target.value)}
-                className={`${fieldClass} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מד ק״מ יציאה</label>
+                <input type="number" inputMode="numeric" value={form.startKm}
+                  onChange={e => set('startKm')(e.target.value)}
+                  className={`${fieldClass} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מיקום יציאה</label>
+                <AutocompleteInput value={form.startLocation} onChange={set('startLocation')}
+                  suggestions={suggestions.start_location || []} placeholder="הזן מיקום…" className={fieldClass} />
+              </div>
             </div>
 
             <div>
@@ -316,22 +325,17 @@ export default function TripEnd() {
                 className={fieldClass} />
             </div>
 
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מיקום יציאה</label>
-              <AutocompleteInput value={form.startLocation} onChange={set('startLocation')}
-                suggestions={suggestions.start_location || []} placeholder="הזן כתובת…" className={fieldClass} />
-            </div>
-
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">סיבת הנסיעה</label>
-              <AutocompleteInput value={form.reason} onChange={set('reason')}
-                suggestions={suggestions.reason || []} placeholder="מנהלי, בט״ש, מבצעי…" className={fieldClass} />
-            </div>
-
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">באישור</label>
-              <AutocompleteInput value={form.approvedBy} onChange={set('approvedBy')}
-                suggestions={suggestions.approved_by || []} placeholder="ק.אגם, אח״מ…" className={fieldClass} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">סיבת הנסיעה</label>
+                <AutocompleteInput value={form.reason} onChange={set('reason')}
+                  suggestions={suggestions.reason || []} placeholder="מנהלי, בט״ש…" className={fieldClass} />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">באישור</label>
+                <AutocompleteInput value={form.approvedBy} onChange={set('approvedBy')}
+                  suggestions={suggestions.approved_by || []} placeholder="ק.אגם, אח״מ…" className={fieldClass} />
+              </div>
             </div>
 
             <div>
