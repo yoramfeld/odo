@@ -185,7 +185,7 @@ export default function TripStart() {
         startLocationManual: isManual,
         approvedBy: approvedBy.trim() || undefined,
       });
-      navigate(`/trip/end/${data.id}`);
+      navigate(`/trip/end/${data.id}`, { state: { justStarted: true } });
     } catch (err) {
       setError(err.response?.data?.error || 'שגיאה בהתחלת נסיעה');
     } finally {

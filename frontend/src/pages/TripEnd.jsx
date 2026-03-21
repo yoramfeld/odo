@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api from '../api/client';
 import AutocompleteInput from '../components/AutocompleteInput';
 
@@ -27,6 +27,7 @@ async function getLocationFull() {
 export default function TripEnd() {
   const { tripId } = useParams();
   const navigate   = useNavigate();
+  const location   = useLocation();
 
   const [trip, setTrip]         = useState(null);
   const [endKm, setEndKm]       = useState('');
@@ -56,7 +57,7 @@ export default function TripEnd() {
       const t = res.data;
       setTrip(t);
       const elapsed = (Date.now() - new Date(t.start_time)) / 60000;
-      if (elapsed < 3) setShowStartEdit(true);
+      if (elapsed < 3 && !location.state?.justStarted) setShowStartEdit(true);
       // Format start_time as datetime-local value (local time)
       const st = new Date(t.start_time);
       const pad = n => String(n).padStart(2, '0');
