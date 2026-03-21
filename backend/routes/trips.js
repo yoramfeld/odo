@@ -222,7 +222,7 @@ router.post('/start', requireAuth, async (req, res) => {
 
 // PATCH /api/trips/:id/end
 router.patch('/:id/end', requireAuth, async (req, res) => {
-  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endLocationManual, endKmManual } = req.body;
+  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endLocationManual, endKmManual, force } = req.body;
   if (endKmConfirmed == null) {
     return res.status(400).json({ error: 'endKmConfirmed is required' });
   }
@@ -235,8 +235,6 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
   if (req.user.role !== 'admin' && trip.driver_id !== req.user.id) {
     return res.status(403).json({ error: 'אין הרשאה' });
   }
-
-  const { force, endKmManual } = req.body;
   const endTime = new Date();
   const validation = validateEndKm(trip.start_km_confirmed, trip.start_time, endKmConfirmed, endTime, !!endKmManual);
 
