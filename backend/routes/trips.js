@@ -22,50 +22,46 @@ const RETENTION_DAYS = parseInt(process.env.PHOTO_RETENTION_DAYS) || 365;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function validateEndKm(startKm, startTime, endKm, endTime, isManual = false) {
+function validateEndKm(startKm, startTime, endKm, endTime) {
   const delta = endKm - startKm;
+  const hours = (new Date(endTime) - new Date(startTime)) / 3_600_000;
+  const speed = hours > 0 && delta > 0 ? Math.round(delta / hours) : 0;
 
-  if (delta < 0)   return { error: isManual
-    ? 'מד הק״מ נמוך מתחילת הנסיעה — בדוק את הערך שהוזן'
-    : 'מד הקילומטר ירד — צלם את המד שוב' };
-  if (delta === 0) return { ok: true, delta: 0, speed: 0, speedFlag: false,
-    warn: isManual ? 'מד הק״מ זהה לתחילת הנסיעה — לא נרשמה נסיעה' : 'מד הק״מ זהה לתחילת הנסיעה — האם צילמת את המד הנכון?' };
-  if (delta > MAX_TRIP_KM) {
-    // Try auto-correction using known prefix
-    const prefix    = String(startKm).slice(0, -3);
-    const suffix    = String(endKm).slice(-3);
+  // Try auto-correction (OCR misread leading digits) when delta looks wrong
+  function tryCorrect() {
+    const prefix = String(startKm).slice(0, -3);
+    const suffix = String(endKm).slice(-3);
     const corrected = parseInt(prefix + suffix);
-    const correctedDelta = corrected - startKm;
-
-    if (correctedDelta > 0 && correctedDelta <= MAX_TRIP_KM) {
-      return { corrected, autoCorrection: true };
-    }
-    return { error: `מרחק של ${delta} ק״מ חורג מהמקסימום — ייתכן שגיאת קריאה, ${isManual ? 'בדוק את הערך' : 'צלם שוב'}` };
+    const cd = corrected - startKm;
+    if (cd > 0 && cd <= MAX_TRIP_KM) return corrected;
+    return null;
   }
 
-  const hours = (new Date(endTime) - new Date(startTime)) / 3_600_000;
-  const speed = hours > 0 ? Math.round(delta / hours) : 0;
+  if (delta < 0) {
+    const corrected = tryCorrect();
+    if (corrected) return { corrected, autoCorrection: true, delta: corrected - startKm, speed: 0, speedFlag: false };
+    return { ok: true, delta, speed: 0, speedFlag: false, anomaly: 'negative_delta' };
+  }
+
+  if (delta > MAX_TRIP_KM) {
+    const corrected = tryCorrect();
+    if (corrected) return { corrected, autoCorrection: true, delta: corrected - startKm, speed: 0, speedFlag: false };
+    return { ok: true, delta, speed, speedFlag: false, anomaly: 'large_delta' };
+  }
 
   if (hours >= 0.25 && speed > SPEED_MAX) {
-    // Same prefix-correction attempt
-    const prefix    = String(startKm).slice(0, -3);
-    const suffix    = String(endKm).slice(-3);
-    const corrected = parseInt(prefix + suffix);
-    const correctedDelta = corrected - startKm;
-    const correctedSpeed = hours > 0 ? Math.round(correctedDelta / hours) : 0;
-
-    if (correctedDelta > 0 && correctedSpeed < SPEED_MAX) {
-      return { corrected, autoCorrection: true, speed: correctedSpeed };
+    const corrected = tryCorrect();
+    if (corrected) {
+      const cs = Math.round((corrected - startKm) / hours);
+      return { corrected, autoCorrection: true, delta: corrected - startKm, speed: cs, speedFlag: cs > SPEED_WARN };
     }
-    return { error: `מהירות בלתי סבירה — ${isManual ? 'בדוק את הערך שהוזן' : 'לא ניתן לתקן את הקריאה, צלם שוב'}` };
+    return { ok: true, delta, speed, speedFlag: true, anomaly: 'high_speed' };
   }
 
   return {
-    ok: true,
-    delta,
-    speed,
+    ok: true, delta, speed,
     speedFlag: speed > SPEED_WARN,
-    warn: delta > WARN_TRIP_KM ? `נסיעה של ${delta} ק״מ — ארוכה מהרגיל. אנא אשר.` : null,
+    warn: delta > WARN_TRIP_KM ? `נסיעה של ${delta} ק״מ — ארוכה מהרגיל.` : null,
   };
 }
 
@@ -223,7 +219,7 @@ router.post('/start', requireAuth, async (req, res) => {
 
 // PATCH /api/trips/:id/end
 router.patch('/:id/end', requireAuth, async (req, res) => {
-  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endLocationManual, endKmManual, force } = req.body;
+  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endKmManual } = req.body;
   if (endKmConfirmed == null) {
     return res.status(400).json({ error: 'endKmConfirmed is required' });
   }
@@ -232,36 +228,21 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
     'SELECT * FROM trips WHERE id = $1', [req.params.id]
   );
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
-  if (trip.status !== 'active') return res.status(409).json({ error: 'Trip is not active' });
+  if (trip.status !== 'active') return res.status(409).json({ error: 'נסיעה זו כבר הסתיימה' });
   if (req.user.role !== 'admin' && trip.driver_id !== req.user.id) {
     return res.status(403).json({ error: 'אין הרשאה' });
   }
   const endTime = new Date();
-  const validation = validateEndKm(trip.start_km_confirmed, trip.start_time, endKmConfirmed, endTime, !!endKmManual);
-
-  if (validation.error) {
-    if (!force) {
-      await logError(req, 422, validation.error,
-        `driver: ${req.user.name} · trip ${trip.id} · car ${trip.car_id} · start ${trip.start_km_confirmed} → submitted ${endKmConfirmed}`);
-      return res.status(422).json({ error: validation.error, canForce: true });
-    }
-    // Force-complete: log and store the validation note
-    validation.forceNote = validation.error;
-    validation.ok = true;
-    validation.speedFlag = false;
-    validation.speed = null;
-    validation.delta = endKmConfirmed - trip.start_km_confirmed;
-  }
+  const validation = validateEndKm(trip.start_km_confirmed, trip.start_time, endKmConfirmed, endTime);
 
   const finalKm = validation.corrected ?? endKmConfirmed;
   const photoBuffer = endPhotoBase64 ? Buffer.from(endPhotoBase64, 'base64') : null;
   const expiresAt = new Date(Date.now() + RETENTION_DAYS * 86_400_000);
 
-  // Build manual_fields: append end-side flags to whatever was set at trip start
+  // Build manual_fields
   const prevManual = trip.manual_fields ? trip.manual_fields.split(',') : [];
-  if (endKmManual)          prevManual.push('end_km');
-  if (endLocationManual)    prevManual.push('end_location');
-  if (validation.forceNote) prevManual.push('force_complete');
+  if (endKmManual)         prevManual.push('end_km');
+  if (validation.anomaly)  prevManual.push(validation.anomaly);
   const manualFields = prevManual.length ? [...new Set(prevManual)].join(',') : null;
 
   const { rows } = await db.query(
@@ -283,7 +264,7 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
     [endKmOcr || null, finalKm, photoBuffer, endTime,
      validation.speedFlag || false, validation.speed || null,
      photoBuffer ? expiresAt : null, endLocation || null,
-     manualFields, validation.forceNote || null, trip.id]
+     manualFields, null, trip.id]
   );
 
   // Update car's current_km

@@ -31,10 +31,8 @@ export default function TripEnd() {
   const [endKm, setEndKm]       = useState('');
   const [endKmOcr, setEndKmOcr] = useState(null);
   const [confidence, setConf]   = useState('none');
-  const [warn, setWarn]         = useState('');
-  const [error, setError]       = useState('');
-  const [canForce, setCanForce] = useState(false);
-  const [loading, setLoading]   = useState(false);
+  const [error, setError]   = useState('');
+  const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
 
   // Post-completion start-details edit
@@ -174,10 +172,9 @@ export default function TripEnd() {
     }
   }
 
-  async function handleSubmit(e, force = false) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    setCanForce(false);
     if (!endKm) { setError('אנא הזן מד קילומטר'); return; }
 
     setLoading(true);
@@ -199,10 +196,7 @@ export default function TripEnd() {
         endPhotoBase64,
         endLocation: locationRef.current || undefined,
         endKmManual: !canvasRef.current,
-        force,
       });
-
-      if (data.warn) setWarn(data.warn);
 
       // Check if start/end data are suspiciously similar (elapsed < 3 min, non-zero distance)
       const t = data.trip;
@@ -218,9 +212,7 @@ export default function TripEnd() {
 
       navigate('/');
     } catch (err) {
-      const body = err.response?.data;
-      setError(body?.error || 'שגיאה בסיום נסיעה');
-      if (body?.canForce) setCanForce(true);
+      setError(err.response?.data?.error || 'שגיאה בסיום נסיעה');
     } finally {
       setLoading(false);
     }
@@ -345,26 +337,9 @@ export default function TripEnd() {
           )}
         </div>
 
-        {warn && (
-          <div className="bg-amber-950 border border-amber-800 text-amber-400 text-sm rounded-xl px-4 py-3">
-            ⚠️ {warn}
-          </div>
-        )}
-
         {error && (
-          <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-3 space-y-3">
-            <div>{error}</div>
-            {canForce && (
-              <button
-                type="button"
-                onClick={e => handleSubmit(e, true)}
-                disabled={loading}
-                className="w-full bg-red-800 hover:bg-red-700 disabled:opacity-40
-                           text-white font-semibold rounded-xl py-2.5 text-sm transition-colors"
-              >
-                סיים בכל זאת
-              </button>
-            )}
+          <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-3">
+            {error}
           </div>
         )}
 
