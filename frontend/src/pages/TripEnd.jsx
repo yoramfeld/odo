@@ -43,12 +43,10 @@ export default function TripEnd() {
   const [locationLoading, setLocLoading]  = useState(true);
   const [gpsCoords, setGpsCoords]         = useState(null);
 
-  // Forgotten-start edit
-  const [showStartEdit, setShowStartEdit]   = useState(false);
-  const [startForm, setStartForm]           = useState({ startKm: '', reason: '', approvedBy: '', startLocation: '' });
-  const [startSaving, setStartSaving]       = useState(false);
-  const [startEditDone, setStartEditDone]   = useState(false);
-  const [suggestions, setSuggestions]       = useState({ reason: [], approved_by: [] });
+  // Post-completion start-details edit
+  const [showStartEdit, setShowStartEdit] = useState(false);
+  const [startForm, setStartForm]         = useState({ startKm: '', startTime: '', startLocation: '' });
+  const [startSaving, setStartSaving]     = useState(false);
 
   const cameraRef  = useRef();
   const canvasRef  = useRef(null);
@@ -57,22 +55,8 @@ export default function TripEnd() {
     api.get(`/trips/${tripId}`).then(res => {
       const t = res.data;
       setTrip(t);
-      const elapsed = (Date.now() - new Date(t.start_time)) / 60000;
-      if (elapsed < 3 && !location.state?.justStarted) setShowStartEdit(true);
-      // Format start_time as datetime-local value (local time)
-      const st = new Date(t.start_time);
-      const pad = n => String(n).padStart(2, '0');
-      const localDT = `${st.getFullYear()}-${pad(st.getMonth()+1)}-${pad(st.getDate())}T${pad(st.getHours())}:${pad(st.getMinutes())}`;
-      setStartForm(f => ({
-        ...f,
-        startKm: String(t.start_km_confirmed ?? ''),
-        startTime: localDT,
-        reason: t.reason ?? '',
-        approvedBy: t.approved_by ?? '',
-        startLocation: t.start_location ?? '',
-      }));
+      prefillStartForm(t);
     });
-    api.get('/trips/suggestions').then(r => setSuggestions(r.data)).catch(() => {});
     getLocationFull().then(async result => {
       if (!result) { setLocLoading(false); return; }
       setGpsCoords({ lat: result.lat, lng: result.lng });
@@ -168,20 +152,24 @@ export default function TripEnd() {
                         : 'bg-red-950 text-red-400 border-red-800';
   }
 
+  function prefillStartForm(t) {
+    const st = new Date(t.start_time);
+    const pad = n => String(n).padStart(2, '0');
+    const localDT = `${st.getFullYear()}-${pad(st.getMonth()+1)}-${pad(st.getDate())}T${pad(st.getHours())}:${pad(st.getMinutes())}`;
+    setStartForm({ startKm: String(t.start_km_confirmed ?? ''), startTime: localDT, startLocation: t.start_location ?? '' });
+  }
+
   async function saveStartDetails() {
     setStartSaving(true);
     try {
-      const updated = await api.patch(`/trips/${tripId}/start-details`, {
+      await api.patch(`/trips/${tripId}/start-details`, {
         startKm: parseInt(startForm.startKm) || undefined,
         startTime: startForm.startTime || undefined,
         startLocation: startForm.startLocation.trim() || undefined,
         startLocationManual: startForm.startLocation.trim() !== (trip.start_location || ''),
-        reason: startForm.reason.trim() || undefined,
-        approvedBy: startForm.approvedBy.trim() || undefined,
       });
-      setTrip(updated.data);
       setShowStartEdit(false);
-      setStartEditDone(true);
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'שגיאה בשמירת פרטי יציאה');
     } finally {
@@ -225,14 +213,18 @@ export default function TripEnd() {
 
       if (data.warn) setWarn(data.warn);
 
-      // Show auto-correction notice briefly then navigate
-      if (data.autoCorrection) {
-        setEndKm(String(data.trip.end_km_confirmed));
-        setWarn(`תוקן אוטומטית: ${endKmOcr} → ${data.trip.end_km_confirmed} ק״מ`);
-        setTimeout(() => navigate('/'), 2000);
-      } else {
-        navigate('/');
+      // Check if start/end data are suspiciously similar (elapsed < 3 min)
+      const t = data.trip;
+      const elapsed = t?.end_time && t?.start_time
+        ? (new Date(t.end_time) - new Date(t.start_time)) / 60000
+        : null;
+      if (elapsed !== null && elapsed < 3) {
+        prefillStartForm(t);
+        setShowStartEdit(true);
+        return;
       }
+
+      navigate('/');
     } catch (err) {
       const body = err.response?.data;
       setError(body?.error || 'שגיאה בסיום נסיעה');
@@ -281,70 +273,50 @@ export default function TripEnd() {
           )}
         </div>
 
-        {/* Forgotten-start banner */}
-        {(showStartEdit || startEditDone) && (
-          <div className={`rounded-2xl border p-4 space-y-3 ${startEditDone ? 'bg-green-950 border-green-800' : 'bg-amber-950 border-amber-800'}`}>
-            {startEditDone ? (
-              <p className="text-green-400 text-sm">✓ פרטי היציאה עודכנו</p>
-            ) : (
-              <>
-                <p className="text-amber-400 text-sm font-semibold">שכחת לרשום יציאה? עדכן פרטים</p>
-                <div className="space-y-2">
-                  <input
-                    type="datetime-local"
-                    value={startForm.startTime || ''}
-                    onChange={e => setStartForm(f => ({ ...f, startTime: e.target.value }))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
-                               text-white text-sm focus:outline-none focus:border-amber-500"
-                  />
-                  <input
-                    type="number" inputMode="numeric"
-                    value={startForm.startKm}
-                    onChange={e => setStartForm(f => ({ ...f, startKm: e.target.value }))}
-                    placeholder="מד ק״מ בהתחלה"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
-                               text-white text-sm focus:outline-none focus:border-amber-500
-                               [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
-                               [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <AutocompleteInput
-                    value={startForm.reason}
-                    onChange={v => setStartForm(f => ({ ...f, reason: v }))}
-                    suggestions={suggestions.reason}
-                    placeholder="סיבת הנסיעה"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
-                               text-white text-sm focus:outline-none focus:border-amber-500"
-                  />
-                  <AutocompleteInput
-                    value={startForm.approvedBy}
-                    onChange={v => setStartForm(f => ({ ...f, approvedBy: v }))}
-                    suggestions={suggestions.approved_by}
-                    placeholder="באישור"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
-                               text-white text-sm focus:outline-none focus:border-amber-500"
-                  />
-                  <input
-                    type="text"
-                    value={startForm.startLocation}
-                    onChange={e => setStartForm(f => ({ ...f, startLocation: e.target.value }))}
-                    placeholder="מיקום יציאה"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
-                               text-white text-sm focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setShowStartEdit(false)}
-                    className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2 text-sm">
-                    ביטול
-                  </button>
-                  <button type="button" onClick={saveStartDetails} disabled={startSaving}
-                    className="flex-1 bg-amber-600 hover:bg-amber-500 disabled:opacity-40
-                               text-white font-semibold rounded-xl py-2 text-sm">
-                    {startSaving ? 'שומר…' : 'שמור פרטי יציאה'}
-                  </button>
-                </div>
-              </>
-            )}
+        {/* Post-completion: suspicious start/end data */}
+        {showStartEdit && (
+          <div className="bg-amber-950 border border-amber-800 rounded-2xl p-4 space-y-3">
+            <p className="text-amber-400 text-sm font-semibold">
+              נתוני תחילת וסיום הנסיעה מאוד דומים. מוזמן לערוך נתוני תחילת הנסיעה
+            </p>
+            <div className="space-y-2">
+              <input
+                type="datetime-local"
+                value={startForm.startTime || ''}
+                onChange={e => setStartForm(f => ({ ...f, startTime: e.target.value }))}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
+                           text-white text-sm focus:outline-none focus:border-amber-500"
+              />
+              <input
+                type="number" inputMode="numeric"
+                value={startForm.startKm}
+                onChange={e => setStartForm(f => ({ ...f, startKm: e.target.value }))}
+                placeholder="מד ק״מ בתחילת הנסיעה"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
+                           text-white text-sm focus:outline-none focus:border-amber-500
+                           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
+                           [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <input
+                type="text"
+                value={startForm.startLocation}
+                onChange={e => setStartForm(f => ({ ...f, startLocation: e.target.value }))}
+                placeholder="מיקום יציאה"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
+                           text-white text-sm focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => navigate('/')}
+                className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2 text-sm">
+                דלג
+              </button>
+              <button type="button" onClick={saveStartDetails} disabled={startSaving}
+                className="flex-1 bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                           text-white font-semibold rounded-xl py-2 text-sm">
+                {startSaving ? 'שומר…' : 'שמור'}
+              </button>
+            </div>
           </div>
         )}
 
