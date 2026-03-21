@@ -42,6 +42,7 @@ export default function TripStart() {
   const [ocrLoading, setOcrLoading]       = useState(false);
   const [previewSrc, setPreviewSrc]       = useState(null);
   const [confidence, setConf]             = useState(null);
+  const [locationText, setLocationText]   = useState('');
   const cameraRef   = useRef();
   const canvasRef   = useRef(null);
   const locationRef = useRef(null); // silently captured GPS address
@@ -167,6 +168,7 @@ export default function TripStart() {
         startKm: parseInt(startKm),
         reason,
         notes: notes || undefined,
+        startLocation:    locationText.trim() || undefined,
         startLocationGps: locationRef.current || undefined,
         approvedBy: approvedBy.trim() || undefined,
       });
@@ -321,6 +323,21 @@ export default function TripStart() {
             placeholder="הערות נוספות…"
             className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                        text-white focus:outline-none focus:border-blue-500 resize-none"
+          />
+        </div>
+
+        {/* Location */}
+        <div>
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+            מיקום יציאה <span className="normal-case text-slate-600">(אופציונלי)</span>
+          </label>
+          <AutocompleteInput
+            value={locationText}
+            onChange={setLocationText}
+            suggestions={suggestions.start_location}
+            placeholder="הזן כתובת…"
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                       text-white text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
 

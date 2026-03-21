@@ -221,7 +221,9 @@ router.post('/start', requireAuth, async (req, res) => {
 
 // PATCH /api/trips/:id/end
 router.patch('/:id/end', requireAuth, async (req, res) => {
-  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endLocationGps, endKmManual } = req.body;
+  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endLocationGps, endKmManual,
+          startKm: overrideStartKm, startTime: overrideStartTime, startLocation: overrideStartLocation,
+          reason: overrideReason, approvedBy: overrideApprovedBy, notes: overrideNotes } = req.body;
   if (endKmConfirmed == null) {
     return res.status(400).json({ error: 'endKmConfirmed is required' });
   }
@@ -235,7 +237,9 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
     return res.status(403).json({ error: 'אין הרשאה' });
   }
   const endTime = new Date();
-  const validation = validateEndKm(trip.start_km_confirmed, trip.start_time, endKmConfirmed, endTime);
+  const effectiveStartKm   = overrideStartKm   ?? trip.start_km_confirmed;
+  const effectiveStartTime = overrideStartTime ? new Date(overrideStartTime) : trip.start_time;
+  const validation = validateEndKm(effectiveStartKm, effectiveStartTime, endKmConfirmed, endTime);
 
   const finalKm = validation.corrected ?? endKmConfirmed;
   const photoBuffer = endPhotoBase64 ? Buffer.from(endPhotoBase64, 'base64') : null;
@@ -243,8 +247,11 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
 
   // Build manual_fields
   const prevManual = trip.manual_fields ? trip.manual_fields.split(',') : [];
-  if (endKmManual)         prevManual.push('end_km');
-  if (validation.anomaly)  prevManual.push(validation.anomaly);
+  if (endKmManual)           prevManual.push('end_km');
+  if (overrideStartKm)       prevManual.push('start_km');
+  if (overrideStartTime)     prevManual.push('start_time');
+  if (overrideStartLocation) prevManual.push('start_location');
+  if (validation.anomaly)    prevManual.push(validation.anomaly);
   const manualFields = prevManual.length ? [...new Set(prevManual)].join(',') : null;
 
   const { rows } = await db.query(
@@ -257,14 +264,23 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
        speed_flag       = $5,
        avg_speed_kmh    = $6,
        photo_expires_at = $7,
-       end_location     = $8,
-       end_location_gps = $9,
-       manual_fields    = $10
-     WHERE id = $11 RETURNING *`,
+       end_location          = $8,
+       end_location_gps      = $9,
+       manual_fields         = $10,
+       start_km_confirmed    = COALESCE($11, start_km_confirmed),
+       start_time            = COALESCE($12::timestamptz, start_time),
+       start_location        = COALESCE($13, start_location),
+       reason                = COALESCE($14, reason),
+       approved_by           = COALESCE($15, approved_by),
+       notes                 = COALESCE($16, notes)
+     WHERE id = $17 RETURNING *`,
     [endKmOcr || null, finalKm, photoBuffer, endTime,
      validation.speedFlag || false, validation.speed || null,
      photoBuffer ? expiresAt : null, endLocation || null,
-     endLocationGps || null, manualFields, trip.id]
+     endLocationGps || null, manualFields,
+     overrideStartKm || null, overrideStartTime || null, overrideStartLocation || null,
+     overrideReason || null, overrideApprovedBy || null, overrideNotes || null,
+     trip.id]
   );
 
   // Update car's current_km

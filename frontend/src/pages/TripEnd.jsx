@@ -28,24 +28,40 @@ export default function TripEnd() {
   const { tripId } = useParams();
   const navigate   = useNavigate();
 
-  const [trip, setTrip]         = useState(null);
-  const [endKm, setEndKm]       = useState('');
-  const [endKmOcr, setEndKmOcr] = useState(null);
-  const [confidence, setConf]   = useState('none');
-  const [locationText, setLocationText]   = useState('');
-  const [locationSuggestions, setLocSugg] = useState([]);
-  const [error, setError]   = useState('');
-  const [loading, setLoading] = useState(false);
+  const [trip, setTrip]     = useState(null);
+  const [form, setForm]     = useState({
+    startKm: '', startTime: '', startLocation: '',
+    endKm: '', endLocation: '',
+    reason: '', approvedBy: '', notes: '',
+  });
+  const [endKmOcr, setEndKmOcr]   = useState(null);
+  const [confidence, setConf]     = useState('none');
+  const [suggestions, setSugg]    = useState({ reason: [], approved_by: [], end_location: [] });
+  const [anomaly, setAnomaly]     = useState(null);
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
-
-  // Post-completion start-details edit
-  const [showStartEdit, setShowStartEdit] = useState(false);
-  const [startForm, setStartForm]         = useState({ startKm: '', startTime: '' });
-  const [startSaving, setStartSaving]     = useState(false);
 
   const cameraRef   = useRef();
   const canvasRef   = useRef(null);
-  const locationRef = useRef(null); // silently captured GPS address
+  const locationRef = useRef(null);
+
+  const set = k => v => setForm(f => ({ ...f, [k]: v }));
+
+  function prefillForm(t) {
+    const st  = new Date(t.start_time);
+    const pad = n => String(n).padStart(2, '0');
+    const localDT = `${st.getFullYear()}-${pad(st.getMonth()+1)}-${pad(st.getDate())}T${pad(st.getHours())}:${pad(st.getMinutes())}`;
+    setForm(f => ({
+      ...f,
+      startKm:       String(t.start_km_confirmed ?? ''),
+      startTime:     localDT,
+      startLocation: t.start_location ?? '',
+      reason:        t.reason ?? '',
+      approvedBy:    t.approved_by ?? '',
+      notes:         t.notes ?? '',
+    }));
+  }
 
   async function fetchLocation() {
     const result = await getLocationFull();
@@ -59,12 +75,8 @@ export default function TripEnd() {
   }
 
   useEffect(() => {
-    api.get(`/trips/${tripId}`).then(res => {
-      const t = res.data;
-      setTrip(t);
-      prefillStartForm(t);
-    });
-    api.get('/trips/suggestions').then(r => setLocSugg(r.data.end_location || [])).catch(() => {});
+    api.get(`/trips/${tripId}`).then(res => { setTrip(res.data); prefillForm(res.data); });
+    api.get('/trips/suggestions').then(r => setSugg(r.data)).catch(() => {});
     fetchLocation();
   }, [tripId]);
 
@@ -125,7 +137,7 @@ export default function TripEnd() {
       const conf = data.confidence ?? 'none';
       setEndKmOcr(km);
       setConf(conf);
-      setEndKm(km != null ? String(km) : '');
+      if (km != null) set('endKm')(String(km));
 
       // Crop preview to digit area
       if (data.crop && canvasRef.current) {
@@ -147,43 +159,9 @@ export default function TripEnd() {
                         : 'bg-red-950 text-red-400 border-red-800';
   }
 
-  function prefillStartForm(t) {
-    const st = new Date(t.start_time);
-    const pad = n => String(n).padStart(2, '0');
-    const localDT = `${st.getFullYear()}-${pad(st.getMonth()+1)}-${pad(st.getDate())}T${pad(st.getHours())}:${pad(st.getMinutes())}`;
-    setStartForm({ startKm: String(t.start_km_confirmed ?? ''), startTime: localDT });
-  }
-
-  async function saveStartDetails() {
-    const st = new Date(trip.start_time);
-    const pad = n => String(n).padStart(2, '0');
-    const originalTime = `${st.getFullYear()}-${pad(st.getMonth()+1)}-${pad(st.getDate())}T${pad(st.getHours())}:${pad(st.getMinutes())}`;
-    const unchanged = startForm.startKm === String(trip.start_km_confirmed ?? '') &&
-                      startForm.startTime === originalTime;
-    if (unchanged) { setShowStartEdit(false); return; }
-
-    setStartSaving(true);
-    try {
-      await api.patch(`/trips/${tripId}/start-details`, {
-        startKm: parseInt(startForm.startKm) || undefined,
-        startTime: startForm.startTime || undefined,
-      });
-      setShowStartEdit(false);
-    } catch (err) {
-      setError(err.response?.data?.error || 'שגיאה בשמירת פרטי יציאה');
-    } finally {
-      setStartSaving(false);
-    }
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
-    if (!endKm) { setError('אנא הזן מד קילומטר'); return; }
-
+  async function doSubmit() {
     setLoading(true);
     try {
-      // Send cropped photo as base64 if available
       let endPhotoBase64 = null;
       if (canvasRef.current) {
         const blob = await new Promise(r => canvasRef.current.toBlob(r, 'image/jpeg', 0.88));
@@ -193,28 +171,20 @@ export default function TripEnd() {
           reader.readAsDataURL(blob);
         });
       }
-
-      const { data } = await api.patch(`/trips/${tripId}/end`, {
+      await api.patch(`/trips/${tripId}/end`, {
         endKmOcr,
-        endKmConfirmed: parseInt(endKm),
+        endKmConfirmed: parseInt(form.endKm),
         endPhotoBase64,
-        endLocation: locationText.trim() || undefined,
+        endLocation:    form.endLocation.trim() || undefined,
         endLocationGps: locationRef.current || undefined,
-        endKmManual: !canvasRef.current,
+        endKmManual:    !canvasRef.current,
+        startKm:        parseInt(form.startKm) || undefined,
+        startTime:      form.startTime || undefined,
+        startLocation:  form.startLocation.trim() || undefined,
+        reason:         form.reason.trim() || undefined,
+        approvedBy:     form.approvedBy.trim() || undefined,
+        notes:          form.notes.trim() || undefined,
       });
-
-      // Check if start/end data are suspiciously similar (elapsed < 3 min, non-zero distance)
-      const t = data.trip;
-      const delta = (t?.end_km_confirmed ?? 0) - (t?.start_km_confirmed ?? 0);
-      const elapsed = t?.end_time && t?.start_time
-        ? (new Date(t.end_time) - new Date(t.start_time)) / 60000
-        : null;
-      if (delta > 0 && elapsed !== null && elapsed < 3) {
-        prefillStartForm(t);
-        setShowStartEdit(true);
-        return;
-      }
-
       navigate('/');
     } catch (err) {
       if (err.response?.status === 409) { navigate('/'); return; }
@@ -222,6 +192,17 @@ export default function TripEnd() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setAnomaly(null);
+    if (!form.endKm) { setError('אנא הזן מד קילומטר סיום'); return; }
+    const delta = parseInt(form.endKm) - parseInt(form.startKm);
+    if (delta < 0)  { setAnomaly('מד ק״מ סיום נמוך מתחילת הנסיעה'); return; }
+    if (delta === 0) { setAnomaly('מד ק״מ סיום זהה לתחילת הנסיעה'); return; }
+    await doSubmit();
   }
 
   if (!trip) return (
@@ -233,10 +214,10 @@ export default function TripEnd() {
   const elapsed = Math.round((Date.now() - new Date(trip.start_time)) / 60000);
   const elapsedH = Math.floor(elapsed / 60), elapsedM = elapsed % 60;
   const elapsedText = `${elapsedH}:${String(elapsedM).padStart(2, '0')}`;
+  const distance = form.endKm && parseInt(form.endKm) > parseInt(form.startKm)
+    ? parseInt(form.endKm) - parseInt(form.startKm) : null;
 
-  const distance = endKm && parseInt(endKm) > trip.start_km_confirmed
-    ? parseInt(endKm) - trip.start_km_confirmed
-    : null;
+  const fieldClass = "w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500";
 
   return (
     <div dir="rtl" className="min-h-dvh flex flex-col max-w-lg mx-auto">
@@ -245,55 +226,12 @@ export default function TripEnd() {
       <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-800">
         <button onClick={() => navigate('/')} className="text-slate-400 text-2xl leading-none">›</button>
         <h1 className="text-white font-bold text-lg">סיים נסיעה</h1>
+        <span className="text-slate-500 text-sm mr-auto">{trip.plate} · {trip.make} {trip.model}</span>
       </div>
 
-      <div className="flex-1 px-5 py-5 space-y-5">
+      <form onSubmit={handleSubmit} className="flex-1 px-5 py-5 space-y-5">
 
-        {/* Trip summary */}
-        <div className="bg-slate-800 rounded-2xl p-4 space-y-1">
-          <div className="text-white font-bold">
-            {trip.plate} · {trip.make} {trip.model}
-          </div>
-          <div className="text-slate-400 text-sm">{trip.reason}</div>
-          <div className="text-slate-500 text-xs">
-            משך {elapsedText} · {trip.start_km_confirmed?.toLocaleString()} ק״מ
-          </div>
-        </div>
-
-        {/* Post-completion: suspicious start/end data */}
-        {showStartEdit && (
-          <div className="bg-amber-950 border border-amber-800 rounded-2xl p-4 space-y-3">
-            <p className="text-amber-400 text-sm font-semibold">
-              נתוני תחילת וסיום הנסיעה מאוד דומים. מוזמן לערוך נתוני תחילת הנסיעה
-            </p>
-            <div className="space-y-2">
-              <input
-                type="datetime-local"
-                value={startForm.startTime || ''}
-                onChange={e => setStartForm(f => ({ ...f, startTime: e.target.value }))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
-                           text-white text-sm focus:outline-none focus:border-amber-500"
-              />
-              <input
-                type="number" inputMode="numeric"
-                value={startForm.startKm}
-                onChange={e => setStartForm(f => ({ ...f, startKm: e.target.value }))}
-                placeholder="מד ק״מ בתחילת הנסיעה"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
-                           text-white text-sm focus:outline-none focus:border-amber-500
-                           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
-                           [&::-webkit-inner-spin-button]:appearance-none"
-              />
-            </div>
-            <button type="button" onClick={saveStartDetails} disabled={startSaving}
-              className="w-full bg-amber-600 hover:bg-amber-500 disabled:opacity-40
-                         text-white font-semibold rounded-xl py-2.5 text-sm">
-              {startSaving ? 'שומר…' : 'שמור'}
-            </button>
-          </div>
-        )}
-
-        {/* End KM */}
+        {/* End KM — primary field */}
         <div>
           <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
             מד קילומטר סיום
@@ -303,13 +241,11 @@ export default function TripEnd() {
               </span>
             )}
           </label>
-
           <div className="relative">
             <input
-              type="number"
-              inputMode="numeric"
-              value={endKm}
-              onChange={e => setEndKm(e.target.value)}
+              type="number" inputMode="numeric"
+              value={form.endKm}
+              onChange={e => set('endKm')(e.target.value)}
               placeholder="הזן ק״מ…"
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pl-12
                          text-white text-2xl font-bold focus:outline-none focus:border-blue-500
@@ -326,16 +262,13 @@ export default function TripEnd() {
                 : '📷'}
             </button>
           </div>
-
           <input ref={cameraRef} type="file" accept="image/*" capture="environment"
             className="hidden" onChange={e => handleFile(e.target.files[0])} />
-
           {previewSrc && (
             <img src={previewSrc} alt="odometer"
               className="w-full rounded-xl mt-3 object-contain bg-black"
               style={{ maxHeight: '35dvh' }} />
           )}
-
           {distance != null && (
             <p className="text-slate-400 text-sm mt-2">
               מרחק נסיעה: <span className="text-white font-semibold">{distance} ק״מ</span>
@@ -345,18 +278,79 @@ export default function TripEnd() {
 
         {/* End location */}
         <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            מיקום סיום
-          </label>
-          <AutocompleteInput
-            value={locationText}
-            onChange={setLocationText}
-            suggestions={locationSuggestions}
-            placeholder="הזן כתובת…"
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                       text-white text-sm focus:outline-none focus:border-blue-500"
-          />
+          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מיקום סיום</label>
+          <AutocompleteInput value={form.endLocation} onChange={set('endLocation')}
+            suggestions={suggestions.end_location || []} placeholder="הזן כתובת…" className={fieldClass} />
         </div>
+
+        {/* Start fields */}
+        <div className="border-t border-slate-800 pt-5 space-y-4">
+          <p className="text-xs text-slate-500 uppercase tracking-widest">פרטי יציאה</p>
+
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מד ק״מ יציאה</label>
+            <input type="number" inputMode="numeric" value={form.startKm}
+              onChange={e => set('startKm')(e.target.value)}
+              className={`${fieldClass} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} />
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">זמן יציאה</label>
+            <input type="datetime-local" value={form.startTime} onChange={e => set('startTime')(e.target.value)}
+              className={fieldClass} />
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מיקום יציאה</label>
+            <AutocompleteInput value={form.startLocation} onChange={set('startLocation')}
+              suggestions={suggestions.start_location || []} placeholder="הזן כתובת…" className={fieldClass} />
+          </div>
+        </div>
+
+        {/* Trip details */}
+        <div className="border-t border-slate-800 pt-5 space-y-4">
+          <p className="text-xs text-slate-500 uppercase tracking-widest">פרטי הנסיעה</p>
+
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">סיבת הנסיעה</label>
+            <AutocompleteInput value={form.reason} onChange={set('reason')}
+              suggestions={suggestions.reason || []} placeholder="מנהלי, בט״ש, מבצעי…" className={fieldClass} />
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">באישור</label>
+            <AutocompleteInput value={form.approvedBy} onChange={set('approvedBy')}
+              suggestions={suggestions.approved_by || []} placeholder="ק.אגם, אח״מ…" className={fieldClass} />
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
+              הערות <span className="normal-case text-slate-600">(אופציונלי)</span>
+            </label>
+            <textarea value={form.notes} onChange={e => set('notes')(e.target.value)}
+              rows={2} placeholder="הערות נוספות…"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                         text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
+          </div>
+        </div>
+
+        {/* Anomaly warning */}
+        {anomaly && (
+          <div className="bg-amber-950 border border-amber-800 rounded-2xl px-4 py-3 space-y-3">
+            <p className="text-amber-400 text-sm font-semibold">⚠️ {anomaly}</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setAnomaly(null)}
+                className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2.5 text-sm">
+                חזור לטופס
+              </button>
+              <button type="button" onClick={doSubmit} disabled={loading}
+                className="flex-1 bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                           text-white font-semibold rounded-xl py-2.5 text-sm">
+                {loading ? 'שומר…' : 'שמור בכל זאת'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-3">
@@ -364,29 +358,15 @@ export default function TripEnd() {
           </div>
         )}
 
-        {/* Combined camera / submit button */}
-        <form onSubmit={handleSubmit}>
-          {ocrLoading ? (
-            <div className="flex items-center justify-center gap-2 text-slate-400 text-sm py-4">
-              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-              </svg>
-              קורא מד קילומטר…
-            </div>
-          ) : endKm !== '' ? (
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-40
-                         text-white font-bold rounded-2xl py-4 text-lg transition-colors"
-            >
-              {loading ? 'שומר…' : 'סיים נסיעה ✓'}
-            </button>
-          ) : null}
-        </form>
+        {!anomaly && (
+          <button type="submit" disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-40
+                       text-white font-bold rounded-2xl py-4 text-lg transition-colors">
+            {loading ? 'שומר…' : 'סיים נסיעה ✓'}
+          </button>
+        )}
 
-      </div>
+      </form>
     </div>
   );
 }
