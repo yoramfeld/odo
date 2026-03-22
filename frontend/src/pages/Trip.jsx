@@ -346,7 +346,7 @@ export default function Trip() {
   const distance = isEndMode && endActive && form.endKm && parseInt(form.endKm) > parseInt(form.startKm)
     ? parseInt(form.endKm) - parseInt(form.startKm) : null;
 
-  const fieldClass = "w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500";
+  const fieldClass = "w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500";
 
   function badgeClass(c) {
     return c === 'high' ? 'bg-green-950 text-green-400 border-green-800'
@@ -371,7 +371,7 @@ export default function Trip() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-        <div className="flex-1 px-5 py-4 space-y-3 overflow-y-auto">
+        <div className="flex-1 px-5 pt-2 pb-4 space-y-3 overflow-y-auto">
 
           {/* Car selector (start mode only) */}
           {!isEndMode && (
@@ -381,7 +381,7 @@ export default function Trip() {
                 <div className="text-slate-500 text-sm">טוען רכבים…</div>
               ) : (
                 <select value={carId} onChange={e => setCarId(e.target.value)} required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
                              text-white text-base focus:outline-none focus:border-blue-500">
                   <option value="">בחר רכב…</option>
                   {cars.map(c => (
@@ -431,7 +431,7 @@ export default function Trip() {
             </label>
             <textarea value={form.notes} onChange={e => set('notes')(e.target.value)}
               rows={1} placeholder="הערות נוספות…"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
                          text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
           </div>
 
@@ -441,31 +441,33 @@ export default function Trip() {
               <>
                 <div ref={startTimeRef}>
                   <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
-                  <input type="time" value={getTime(form.startTime)}
+                  <input type="text" inputMode="numeric" placeholder="HH:MM"
+                    value={getTime(form.startTime)}
                     onChange={e => set('startTime')(form.startTime.slice(0,11) + e.target.value)}
                     {...makeTimeHandlers(startTimeRef, startTimeVpHandler)}
-                    className={`${fieldClass} text-sm`} />
+                    className={`${fieldClass} text-sm font-mono`} />
                 </div>
                 <div ref={endTimeRef}>
                   <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
-                  <input type="time" value={getTime(form.endTime)}
+                  <input type="text" inputMode="numeric" placeholder="HH:MM"
+                    value={getTime(form.endTime)}
                     onChange={e => set('endTime')(form.endTime.slice(0,11) + e.target.value)}
                     {...makeTimeHandlers(endTimeRef, endTimeVpHandler)}
-                    className={`${fieldClass} text-sm`} />
+                    className={`${fieldClass} text-sm font-mono`} />
                 </div>
               </>
             ) : (
               <>
                 <div>
                   <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
-                  <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-300 text-sm">
+                  <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 text-sm">
                     {(() => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; })()}
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
                   <input disabled placeholder="—"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5
                                text-slate-600 text-sm cursor-not-allowed" />
                 </div>
               </>
@@ -494,7 +496,7 @@ export default function Trip() {
                 <input type="number" inputMode="numeric" value={form.startKm}
                   onChange={e => isEndMode ? set('startKm')(e.target.value) : handleStartKmChange(e.target.value)}
                   required={!isEndMode}
-                  className={`w-full bg-slate-800 border border-slate-700 rounded-xl py-3 text-white text-xl font-bold
+                  className={`w-full bg-slate-800 border border-slate-700 rounded-xl py-2.5 text-white text-xl font-bold
                     focus:outline-none focus:border-blue-500
                     [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
                     [&::-webkit-inner-spin-button]:appearance-none
@@ -535,7 +537,7 @@ export default function Trip() {
                   onChange={e => set('endKm')(e.target.value)}
                   disabled={!isEndMode || !endActive}
                   placeholder={isEndMode && endActive ? 'הזן ק״מ…' : '—'}
-                  className={`w-full border rounded-xl px-4 py-3 text-xl font-bold
+                  className={`w-full border rounded-xl px-4 py-2.5 text-xl font-bold
                     focus:outline-none focus:border-blue-500
                     [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
                     [&::-webkit-inner-spin-button]:appearance-none
@@ -574,7 +576,7 @@ export default function Trip() {
         <div className="px-5 pb-6 pt-2 space-y-3">
 
           {anomaly && (
-            <div className="bg-amber-950 border border-amber-800 rounded-2xl px-4 py-3 space-y-3">
+            <div className="bg-amber-950 border border-amber-800 rounded-2xl px-4 py-2.5 space-y-3">
               <p className="text-amber-400 text-sm font-semibold">⚠️ {anomaly}</p>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setAnomaly(null)}
@@ -591,7 +593,7 @@ export default function Trip() {
           )}
 
           {error && (
-            <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-3">
+            <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-2.5">
               {error}
             </div>
           )}
