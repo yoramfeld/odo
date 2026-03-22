@@ -41,10 +41,12 @@ export default function TripEnd() {
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [endActive, setEndActive] = useState(false);
 
   const cameraRef   = useRef();
   const canvasRef   = useRef(null);
   const locationRef = useRef(null);
+  const endKmRef    = useRef(null);
 
   const set = k => v => setForm(f => ({ ...f, [k]: v }));
 
@@ -194,20 +196,24 @@ export default function TripEnd() {
     }
   }
 
+  function activateEndKm() {
+    setEndActive(true);
+    setTimeout(() => endKmRef.current?.focus(), 50);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!endActive) { activateEndKm(); return; }
     setError('');
     setAnomaly(null);
-    if (!form.endKm) { setActiveTab('end'); setError('אנא הזן מד קילומטר סיום'); return; }
-    if (!form.endLocation.trim()) { setActiveTab('end'); setError('אנא הזן מיקום סיום'); return; }
-    if (!form.reason.trim()) { setActiveTab('start'); setError('אנא הזן סיבת נסיעה'); return; }
+    if (!form.endKm) { endKmRef.current?.focus(); setError('אנא הזן מד קילומטר סיום'); return; }
+    if (!form.endLocation.trim()) { setError('אנא הזן מיקום סיום'); return; }
+    if (!form.reason.trim()) { setError('אנא הזן סיבת נסיעה'); return; }
     const delta = parseInt(form.endKm) - parseInt(form.startKm);
     if (delta < 0)  { setAnomaly('מד ק״מ סיום נמוך מתחילת הנסיעה'); return; }
     if (delta === 0) { setAnomaly('מד ק״מ סיום זהה לתחילת הנסיעה'); return; }
     await doSubmit();
   }
-
-  const [activeTab, setActiveTab] = useState('end');
 
   if (!trip) return (
     <div className="min-h-dvh flex items-center justify-center">
@@ -215,7 +221,7 @@ export default function TripEnd() {
     </div>
   );
 
-  const distance = form.endKm && parseInt(form.endKm) > parseInt(form.startKm)
+  const distance = endActive && form.endKm && parseInt(form.endKm) > parseInt(form.startKm)
     ? parseInt(form.endKm) - parseInt(form.startKm) : null;
 
   const fieldClass = "w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500";
@@ -230,129 +236,115 @@ export default function TripEnd() {
         <span className="text-slate-500 text-sm mr-auto">{trip.plate} · {trip.make} {trip.model}</span>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-800">
-        {[['end', 'סיום'], ['start', 'התחלה']].map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setActiveTab(key)}
-            className={`flex-1 py-3 text-sm font-semibold transition-colors ${
-              activeTab === key
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-slate-500 hover:text-slate-300'
-            }`}>
-            {label}
-          </button>
-        ))}
-      </div>
-
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-        <div className="flex-1 px-5 py-5 space-y-5 overflow-y-auto">
+        <div className="flex-1 px-5 py-4 space-y-3 overflow-y-auto">
 
-          {/* ── End tab ── */}
-          {activeTab === 'end' && <>
-
+          {/* Row 1: Reason | Approved By */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-                מד קילומטר סיום
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">סיבת הנסיעה</label>
+              <AutocompleteInput value={form.reason} onChange={set('reason')}
+                suggestions={suggestions.reason || []} placeholder="מנהלי, בט״ש…" className={fieldClass} />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">באישור</label>
+              <AutocompleteInput value={form.approvedBy} onChange={set('approvedBy')}
+                suggestions={suggestions.approved_by || []} placeholder="ק.אגם, אח״מ…" className={fieldClass} />
+            </div>
+          </div>
+
+          {/* Row 2: Start Location | End Location */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">מיקום התחלה</label>
+              <AutocompleteInput value={form.startLocation} onChange={set('startLocation')}
+                suggestions={suggestions.start_location || []} placeholder="הזן מיקום…" className={fieldClass} />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">מיקום סיום</label>
+              <AutocompleteInput value={form.endLocation} onChange={set('endLocation')}
+                suggestions={suggestions.end_location || []} placeholder="הזן מיקום…" className={fieldClass} />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">
+              הערות <span className="normal-case text-slate-600">(אופציונלי)</span>
+            </label>
+            <textarea value={form.notes} onChange={e => set('notes')(e.target.value)}
+              rows={2} placeholder="הערות נוספות…"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                         text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
+          </div>
+
+          {/* OCR preview */}
+          {previewSrc && (
+            <img src={previewSrc} alt="odometer"
+              className="w-full rounded-xl object-contain bg-black"
+              style={{ maxHeight: '30dvh' }} />
+          )}
+
+          {/* Row 3: Start KM | End KM */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">ק״מ התחלה</label>
+              <input type="number" inputMode="numeric" value={form.startKm}
+                onChange={e => set('startKm')(e.target.value)}
+                className={`${fieldClass} text-xl font-bold
+                  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
+                  [&::-webkit-inner-spin-button]:appearance-none`} />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">
+                ק״מ סיום
                 {endKmOcr != null && (
-                  <span className={`mr-2 px-2 py-0.5 rounded-full text-xs border ${badgeClass(confidence)}`}>
+                  <span className={`mr-2 px-1.5 py-0.5 rounded-full text-xs border ${badgeClass(confidence)}`}>
                     {confidence}
                   </span>
                 )}
               </label>
               <div className="relative">
                 <input
+                  ref={endKmRef}
                   type="number" inputMode="numeric"
                   value={form.endKm}
                   onChange={e => set('endKm')(e.target.value)}
-                  placeholder="הזן ק״מ…"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pl-12
-                             text-white text-2xl font-bold focus:outline-none focus:border-blue-500
-                             [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
-                             [&::-webkit-inner-spin-button]:appearance-none"
+                  disabled={!endActive}
+                  placeholder={endActive ? 'הזן ק״מ…' : '—'}
+                  className={`w-full border rounded-xl px-4 py-3 pl-10 text-xl font-bold
+                    focus:outline-none focus:border-blue-500
+                    [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
+                    [&::-webkit-inner-spin-button]:appearance-none
+                    ${endActive
+                      ? 'bg-slate-800 border-slate-700 text-white'
+                      : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'}`}
                 />
-                <button type="button" onClick={() => cameraRef.current.click()}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl leading-none">
-                  {ocrLoading
-                    ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                      </svg>
-                    : '📷'}
-                </button>
+                {endActive && (
+                  <button type="button" onClick={() => cameraRef.current.click()}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg leading-none">
+                    {ocrLoading
+                      ? <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                        </svg>
+                      : '📷'}
+                  </button>
+                )}
               </div>
               <input ref={cameraRef} type="file" accept="image/*" capture="environment"
                 className="hidden" onChange={e => handleFile(e.target.files[0])} />
-              {previewSrc && (
-                <img src={previewSrc} alt="odometer"
-                  className="w-full rounded-xl mt-3 object-contain bg-black"
-                  style={{ maxHeight: '35dvh' }} />
-              )}
               {distance != null && (
-                <p className="text-slate-400 text-sm mt-2">
-                  מרחק נסיעה: <span className="text-white font-semibold">{distance} ק״מ</span>
+                <p className="text-slate-400 text-xs mt-1">
+                  מרחק: <span className="text-white font-semibold">{distance} ק״מ</span>
                 </p>
               )}
             </div>
-
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מיקום סיום</label>
-              <AutocompleteInput value={form.endLocation} onChange={set('endLocation')}
-                suggestions={suggestions.end_location || []} placeholder="הזן מיקום…" className={fieldClass} />
-            </div>
-
-          </>}
-
-          {/* ── Start tab ── */}
-          {activeTab === 'start' && <>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מד ק״מ התחלה</label>
-                <input type="number" inputMode="numeric" value={form.startKm}
-                  onChange={e => set('startKm')(e.target.value)}
-                  className={`${fieldClass} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">מיקום התחלה</label>
-                <AutocompleteInput value={form.startLocation} onChange={set('startLocation')}
-                  suggestions={suggestions.start_location || []} placeholder="הזן מיקום…" className={fieldClass} />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">זמן התחלה</label>
-              <input type="datetime-local" value={form.startTime} onChange={e => set('startTime')(e.target.value)}
-                className={fieldClass} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">סיבת הנסיעה</label>
-                <AutocompleteInput value={form.reason} onChange={set('reason')}
-                  suggestions={suggestions.reason || []} placeholder="מנהלי, בט״ש…" className={fieldClass} />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">באישור</label>
-                <AutocompleteInput value={form.approvedBy} onChange={set('approvedBy')}
-                  suggestions={suggestions.approved_by || []} placeholder="ק.אגם, אח״מ…" className={fieldClass} />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-                הערות <span className="normal-case text-slate-600">(אופציונלי)</span>
-              </label>
-              <textarea value={form.notes} onChange={e => set('notes')(e.target.value)}
-                rows={2} placeholder="הערות נוספות…"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                           text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
-            </div>
-
-          </>}
+          </div>
 
         </div>
 
-        {/* Bottom — always visible */}
+        {/* Bottom */}
         <div className="px-5 pb-6 pt-2 space-y-3">
 
           {anomaly && (
@@ -380,9 +372,11 @@ export default function TripEnd() {
 
           {!anomaly && (
             <button type="submit" disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-40
-                         text-white font-bold rounded-2xl py-4 text-lg transition-colors">
-              {loading ? 'שומר…' : 'סיים נסיעה ✓'}
+              className={`w-full font-bold rounded-2xl py-4 text-lg transition-colors
+                ${endActive
+                  ? 'bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white'
+                  : 'bg-blue-600 hover:bg-blue-500 text-white'}`}>
+              {loading ? 'שומר…' : endActive ? 'אשר וסיים ✓' : 'סיים נסיעה ←'}
             </button>
           )}
 
