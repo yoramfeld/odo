@@ -80,27 +80,7 @@ export default function Trip() {
 
   const getTime = dt => dt ? dt.slice(11, 16) : '';
 
-  function adjustTime(dt, deltaMins) {
-    if (!dt) return dt;
-    const d = new Date(dt);
-    d.setMinutes(d.getMinutes() + deltaMins);
-    return toDateTimeLocal(d);
-  }
 
-  function TimeTweaker({ label, value, onChange }) {
-    return (
-      <div className="flex items-center gap-2">
-        <button type="button" onClick={() => onChange(adjustTime(value, 5))}
-          className="text-slate-400 hover:text-white text-2xl leading-none w-7 text-center flex-shrink-0">+</button>
-        <div className="flex-1 text-center">
-          <div className="text-xs text-slate-400 uppercase tracking-widest">{label}</div>
-          <div className="text-white font-mono text-sm">{getTime(value)}</div>
-        </div>
-        <button type="button" onClick={() => onChange(adjustTime(value, -5))}
-          className="text-slate-400 hover:text-white text-2xl leading-none w-7 text-center flex-shrink-0">−</button>
-      </div>
-    );
-  }
 
   function prefillForm(t) {
     const startDT = toDateTimeLocal(new Date(t.start_time));
@@ -438,8 +418,18 @@ export default function Trip() {
           <div className="grid grid-cols-2 gap-3">
             {isEndMode ? (
               <>
-                <TimeTweaker label="שעת התחלה" value={form.startTime} onChange={set('startTime')} />
-                <TimeTweaker label="שעת סיום"   value={form.endTime}   onChange={set('endTime')} />
+                <div>
+                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
+                  <input type="time" value={getTime(form.startTime)}
+                    onChange={e => set('startTime')(form.startTime.slice(0,11) + e.target.value)}
+                    className={`${fieldClass} text-sm`} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
+                  <input type="time" value={getTime(form.endTime)}
+                    onChange={e => set('endTime')(form.endTime.slice(0,11) + e.target.value)}
+                    className={`${fieldClass} text-sm`} />
+                </div>
               </>
             ) : (
               <>
