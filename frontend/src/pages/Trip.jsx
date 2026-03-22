@@ -87,15 +87,17 @@ export default function Trip() {
     return toDateTimeLocal(d);
   }
 
-  function TimeTweaker({ value, onChange }) {
-    const btnClass = "px-3 py-3 text-slate-400 hover:text-white hover:bg-slate-700 text-xs font-semibold border-slate-700";
+  function TimeTweaker({ label, value, onChange }) {
     return (
-      <div dir="ltr" className="flex items-center bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-        <button type="button" onClick={() => onChange(adjustTime(value, -5))} className={`${btnClass} border-r`}>−5</button>
-        <button type="button" onClick={() => onChange(adjustTime(value, -1))} className={`${btnClass} border-r`}>−1</button>
-        <span className="flex-1 text-center text-white font-mono text-base py-3 select-none">{getTime(value)}</span>
-        <button type="button" onClick={() => onChange(adjustTime(value,  1))} className={`${btnClass} border-l`}>+1</button>
-        <button type="button" onClick={() => onChange(adjustTime(value,  5))} className={`${btnClass} border-l`}>+5</button>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => onChange(adjustTime(value, 5))}
+          className="text-slate-400 hover:text-white text-2xl leading-none w-7 text-center flex-shrink-0">+</button>
+        <div className="flex-1 text-center">
+          <div className="text-xs text-slate-400 uppercase tracking-widest">{label}</div>
+          <div className="text-white font-mono text-sm">{getTime(value)}</div>
+        </div>
+        <button type="button" onClick={() => onChange(adjustTime(value, -5))}
+          className="text-slate-400 hover:text-white text-2xl leading-none w-7 text-center flex-shrink-0">−</button>
       </div>
     );
   }
@@ -434,27 +436,27 @@ export default function Trip() {
 
           {/* Row 3: Start Time | End Time */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
-              {isEndMode ? (
-                <TimeTweaker value={form.startTime} onChange={set('startTime')} />
-              ) : (
-                <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
-                                text-slate-300 text-sm">
-                  {(() => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; })()}
+            {isEndMode ? (
+              <>
+                <TimeTweaker label="שעת התחלה" value={form.startTime} onChange={set('startTime')} />
+                <TimeTweaker label="שעת סיום"   value={form.endTime}   onChange={set('endTime')} />
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
+                  <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-300 text-sm">
+                    {(() => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; })()}
+                  </div>
                 </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
-              {isEndMode ? (
-                <TimeTweaker value={form.endTime} onChange={set('endTime')} />
-              ) : (
-                <input disabled placeholder="—"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
-                             text-slate-600 text-sm cursor-not-allowed" />
-              )}
-            </div>
+                <div>
+                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
+                  <input disabled placeholder="—"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
+                               text-slate-600 text-sm cursor-not-allowed" />
+                </div>
+              </>
+            )}
           </div>
 
           {/* OCR preview */}
