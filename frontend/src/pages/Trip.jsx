@@ -258,17 +258,7 @@ export default function Trip() {
         approvedBy:       form.approvedBy.trim() || undefined,
         endLocation:      form.endLocation.trim() || undefined,
       });
-      const car = cars.find(c => c.id === parseInt(carId));
-      const startDT = toDateTimeLocal(new Date(data.start_time));
-      setTripId(data.id);
-      setTripMeta({ plate: car?.plate, make: car?.make, model: car?.model });
-      const endDT = toDateTimeLocal(new Date());
-      setForm(f => ({ ...f, startTime: startDT, endTime: endDT }));
-      startKmOriginal.current   = data.start_km_confirmed ?? null;
-      startTimeOriginal.current = startDT;
-      endTimeOriginal.current   = endDT;
-      // Reset OCR for end mode
-      setOcrKm(null); setConf(null); setPreviewSrc(null); canvasRef.current = null;
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'שגיאה בהתחלת נסיעה');
     } finally {
