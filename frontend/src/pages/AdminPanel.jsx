@@ -188,75 +188,6 @@ function TripsTab({ cars, drivers }) {
         </div>
       </SectionCard>
 
-      {/* Edit form */}
-      {editing && (() => {
-        const mf = new Set((editing.manual_fields || '').split(',').filter(Boolean));
-        return (
-          <SectionCard>
-            <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-white font-semibold text-sm">
-                  Edit Trip — {editing.plate} · {editing.driver_name}
-                </h3>
-                <button onClick={cancelEdit} className="text-slate-500 text-sm">✕</button>
-              </div>
-
-              <div className="border-t border-slate-700 pt-3 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <FieldRow label="Start Time">
-                    <Input type="datetime-local" value={form.startTime} onChange={e => setF('startTime', e.target.value)}
-                      highlight={mf.has('start_time')} />
-                  </FieldRow>
-                  <FieldRow label="End Time">
-                    <Input type="datetime-local" value={form.endTime} onChange={e => setF('endTime', e.target.value)} />
-                  </FieldRow>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <FieldRow label="Start KM">
-                    <Input type="number" value={form.startKm} onChange={e => setF('startKm', e.target.value)}
-                      highlight={mf.has('start_km')} />
-                  </FieldRow>
-                  <FieldRow label="End KM">
-                    <Input type="number" value={form.endKm} onChange={e => setF('endKm', e.target.value)}
-                      highlight={mf.has('end_km')} />
-                  </FieldRow>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <FieldRow label="Start Location">
-                    <Input value={form.startLocation} onChange={e => setF('startLocation', e.target.value)}
-                      placeholder="מיקום התחלה" highlight={mf.has('start_location')} />
-                  </FieldRow>
-                  <FieldRow label="End Location">
-                    <Input value={form.endLocation} onChange={e => setF('endLocation', e.target.value)}
-                      placeholder="מיקום סיום" highlight={mf.has('end_location')} />
-                  </FieldRow>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <FieldRow label="Reason">
-                    <Input value={form.reason} onChange={e => setF('reason', e.target.value)} />
-                  </FieldRow>
-                  <FieldRow label="Approved By">
-                    <Input value={form.approvedBy} onChange={e => setF('approvedBy', e.target.value)} />
-                  </FieldRow>
-                </div>
-                <FieldRow label="Notes">
-                  <Input value={form.notes} onChange={e => setF('notes', e.target.value)} />
-                </FieldRow>
-              </div>
-
-              {editError && <p className="text-red-400 text-xs">{editError}</p>}
-              <div className="flex gap-2 pt-1">
-                <button onClick={cancelEdit} className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2.5 text-sm">Cancel</button>
-                <button onClick={saveEdit} disabled={saving}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold rounded-xl py-2.5 text-sm">
-                  {saving ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-            </div>
-          </SectionCard>
-        );
-      })()}
-
       {/* Table */}
       {loading ? <div className="text-slate-500 text-sm text-center py-6">Loading…</div> : (
         <SectionCard>
@@ -276,62 +207,106 @@ function TripsTab({ cars, drivers }) {
             const mf = new Set(manualArr);
             const hi = f => mf.has(f) ? 'text-red-400' : 'text-slate-400';
 
+            const isOpen = editing?.id === t.id;
+
             return (
-              <div key={t.id} onClick={() => openEdit(t)}
-                className={`px-4 py-3 border-b border-slate-700 last:border-0 cursor-pointer
-                            transition-colors hover:bg-slate-700/50
-                            ${editing?.id === t.id ? 'bg-slate-700/50' : ''}`}>
+              <div key={t.id} className="border-b border-slate-700 last:border-0">
 
-                {/* Header: plate · driver + badges */}
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-white font-semibold text-sm">{t.plate}</span>
-                    <span className="text-slate-500 text-xs">·</span>
-                    <span className="text-slate-400 text-xs truncate">{t.driver_name}</span>
+                {/* Summary row — click to expand/collapse */}
+                <div onClick={() => isOpen ? cancelEdit() : openEdit(t)}
+                  className={`px-4 py-3 cursor-pointer transition-colors hover:bg-slate-700/50
+                              ${isOpen ? 'bg-slate-700/50' : ''}`}>
+
+                  {/* Header: plate · driver + badges */}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-white font-semibold text-sm">{t.plate}</span>
+                      <span className="text-slate-500 text-xs">·</span>
+                      <span className="text-slate-400 text-xs truncate">{t.driver_name}</span>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0 flex-wrap justify-end">
+                      {fieldEdits         && <Badge color="red">✏</Badge>}
+                      {t.discrepancy_flag && <Badge color="amber">△ {t.discrepancy_delta}km</Badge>}
+                      {hasNegDelta        && <Badge color="red">↘ 0km</Badge>}
+                      {hasLargeDelta      && <Badge color="amber">↗ {t.distance_km}km</Badge>}
+                      {t.speed_flag       && <Badge color="red">⚡ {t.avg_speed_kmh}km/h</Badge>}
+                      {t.status === 'active' && <Badge color="blue">active</Badge>}
+                    </div>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0 flex-wrap justify-end">
-                    {fieldEdits         && <Badge color="red">✏</Badge>}
-                    {t.discrepancy_flag && <Badge color="amber">△ {t.discrepancy_delta}km</Badge>}
-                    {hasNegDelta        && <Badge color="red">↘ 0km</Badge>}
-                    {hasLargeDelta      && <Badge color="amber">↗ {t.distance_km}km</Badge>}
-                    {t.speed_flag       && <Badge color="red">⚡ {t.avg_speed_kmh}km/h</Badge>}
-                    {t.status === 'active' && <Badge color="blue">active</Badge>}
+
+                  {/* Paired rows: start (left) | end (right) */}
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
+                    <div className={hi('start_time')}>{fmtDT(t.start_time)}</div>
+                    <div className="text-slate-400">
+                      {t.end_time ? (() => { const d = new Date(t.end_time); const p = n => String(n).padStart(2,'0'); return `${p(d.getHours())}:${p(d.getMinutes())}`; })() : <span className="text-slate-600">—</span>}
+                      {duration && <span className="text-slate-500 ml-1">({duration})</span>}
+                    </div>
+                    <div className={hi('start_km')}>{t.start_km_confirmed?.toLocaleString()} km</div>
+                    <div className={t.end_km_confirmed != null ? hi('end_km') : ''}>
+                      {t.end_km_confirmed != null
+                        ? <>{t.end_km_confirmed.toLocaleString()} km <span className="text-white font-semibold">+{t.distance_km}</span></>
+                        : <span className="text-slate-600">—</span>}
+                    </div>
+                    <div className={`truncate ${hi('start_location')}`}>{t.start_location || <span className="text-slate-600">—</span>}</div>
+                    <div className={`truncate ${hi('end_location')}`}>{t.end_location || <span className="text-slate-600">—</span>}</div>
+                    <div className="text-slate-400 truncate">{t.reason}</div>
+                    <div className="text-slate-400 truncate">{t.approved_by || <span className="text-slate-600">—</span>}</div>
                   </div>
+
+                  {t.notes && <div className="text-slate-600 text-xs mt-1 italic truncate">{t.notes}</div>}
                 </div>
 
-                {/* Paired rows: start (left) | end (right) */}
-                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
-                  <div className={hi('start_time')}>
-                    {fmtDT(t.start_time)}
-                  </div>
-                  <div className="text-slate-400">
-                    {t.end_time ? (() => { const d = new Date(t.end_time); const p = n => String(n).padStart(2,'0'); return `${p(d.getHours())}:${p(d.getMinutes())}`; })() : <span className="text-slate-600">—</span>}
-                    {duration && <span className="text-slate-500 ml-1">({duration})</span>}
-                  </div>
-
-                  <div className={hi('start_km')}>
-                    {t.start_km_confirmed?.toLocaleString()} km
-                  </div>
-                  <div className={t.end_km_confirmed != null ? hi('end_km') : ''}>
-                    {t.end_km_confirmed != null
-                      ? <>{t.end_km_confirmed.toLocaleString()} km <span className="text-white font-semibold">+{t.distance_km}</span></>
-                      : <span className="text-slate-600">—</span>}
-                  </div>
-
-                  <div className={`truncate ${hi('start_location')}`}>
-                    {t.start_location || <span className="text-slate-600">—</span>}
-                  </div>
-                  <div className={`truncate ${hi('end_location')}`}>
-                    {t.end_location || <span className="text-slate-600">—</span>}
-                  </div>
-
-                  <div className="text-slate-400 truncate">{t.reason}</div>
-                  <div className="text-slate-400 truncate">{t.approved_by || <span className="text-slate-600">—</span>}</div>
-                </div>
-
-                {t.notes && (
-                  <div className="text-slate-600 text-xs mt-1 italic truncate">{t.notes}</div>
-                )}
+                {/* Inline edit form */}
+                {isOpen && (() => {
+                  const mf = new Set((editing.manual_fields || '').split(',').filter(Boolean));
+                  return (
+                    <div className="px-4 pb-4 pt-2 space-y-3 border-t border-slate-700 bg-slate-800/50">
+                      <div className="grid grid-cols-2 gap-3">
+                        <FieldRow label="Start Time">
+                          <Input type="datetime-local" value={form.startTime} onChange={e => setF('startTime', e.target.value)} highlight={mf.has('start_time')} />
+                        </FieldRow>
+                        <FieldRow label="End Time">
+                          <Input type="datetime-local" value={form.endTime} onChange={e => setF('endTime', e.target.value)} />
+                        </FieldRow>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FieldRow label="Start KM">
+                          <Input type="number" value={form.startKm} onChange={e => setF('startKm', e.target.value)} highlight={mf.has('start_km')} />
+                        </FieldRow>
+                        <FieldRow label="End KM">
+                          <Input type="number" value={form.endKm} onChange={e => setF('endKm', e.target.value)} highlight={mf.has('end_km')} />
+                        </FieldRow>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FieldRow label="Start Location">
+                          <Input value={form.startLocation} onChange={e => setF('startLocation', e.target.value)} placeholder="מיקום התחלה" highlight={mf.has('start_location')} />
+                        </FieldRow>
+                        <FieldRow label="End Location">
+                          <Input value={form.endLocation} onChange={e => setF('endLocation', e.target.value)} placeholder="מיקום סיום" highlight={mf.has('end_location')} />
+                        </FieldRow>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FieldRow label="Reason">
+                          <Input value={form.reason} onChange={e => setF('reason', e.target.value)} />
+                        </FieldRow>
+                        <FieldRow label="Approved By">
+                          <Input value={form.approvedBy} onChange={e => setF('approvedBy', e.target.value)} />
+                        </FieldRow>
+                      </div>
+                      <FieldRow label="Notes">
+                        <Input value={form.notes} onChange={e => setF('notes', e.target.value)} />
+                      </FieldRow>
+                      {editError && <p className="text-red-400 text-xs">{editError}</p>}
+                      <div className="flex gap-2">
+                        <button onClick={cancelEdit} className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2 text-sm">Cancel</button>
+                        <button onClick={saveEdit} disabled={saving}
+                          className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold rounded-xl py-2 text-sm">
+                          {saving ? 'Saving…' : 'Save'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
