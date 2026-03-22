@@ -46,9 +46,9 @@ export default function Trip() {
   });
   const set = k => v => setForm(f => ({ ...f, [k]: v }));
 
-  // Manual edit tracking
-  const [startKmModified, setStartKmModified]   = useState(false);
-  const [startTimeModified, setStartTimeModified] = useState(false);
+  // Original auto-filled values — compare at submit to detect real changes
+  const startKmOriginal   = useRef(null);  // numeric km from lastKm/OCR
+  const startTimeOriginal = useRef(null);  // datetime-local string from prefillForm
 
   // OCR
   const [ocrKm, setOcrKm]         = useState(null);
@@ -87,8 +87,8 @@ export default function Trip() {
       approvedBy:    t.approved_by ?? '',
       notes:         t.notes ?? '',
     }));
-    setStartKmModified(false);
-    setStartTimeModified(false);
+    startKmOriginal.current   = t.start_km_confirmed ?? null;
+    startTimeOriginal.current = localDT;
   }
 
   async function fetchLocation() {
@@ -123,14 +123,13 @@ export default function Trip() {
       const km = res.data.last_km;
       setLastKm(km);
       setForm(f => ({ ...f, startKm: km != null ? String(km) : '' }));
-      setStartKmModified(false);
+      startKmOriginal.current = km ?? null;
       setWarn('');
     });
   }, [carId]);
 
   function handleStartKmChange(val) {
     set('startKm')(val);
-    setStartKmModified(true);
     if (lastKm != null && val !== '' && Math.abs(parseInt(val) - lastKm) > 5) {
       setWarn(`צפוי ${lastKm.toLocaleString()} ק״מ — הוזן ${parseInt(val).toLocaleString()} ק״מ. הוסף הערה במידת הצורך.`);
     } else {
@@ -198,7 +197,7 @@ export default function Trip() {
           set('endKm')(String(data.km));
         } else {
           set('startKm')(String(data.km));
-          setStartKmModified(false);
+          startKmOriginal.current = data.km;
           if (lastKm != null && Math.abs(data.km - lastKm) > 5) {
             setWarn(`צפוי ${lastKm.toLocaleString()} ק״מ — OCR קרא ${data.km.toLocaleString()} ק״מ.`);
           } else {
@@ -224,7 +223,7 @@ export default function Trip() {
       const { data } = await api.post('/trips/start', {
         carId: parseInt(carId),
         startKm: parseInt(form.startKm),
-        startKmManual: startKmModified,
+        startKmManual: startKmOriginal.current !== null && parseInt(form.startKm) !== startKmOriginal.current,
         reason: form.reason,
         notes: form.notes || undefined,
         startLocation:    form.startLocation.trim() || undefined,
@@ -235,8 +234,8 @@ export default function Trip() {
       const car = cars.find(c => c.id === parseInt(carId));
       setTripId(data.id);
       setTripMeta({ plate: car?.plate, make: car?.make, model: car?.model });
-      setStartKmModified(false);
-      setStartTimeModified(false);
+      startKmOriginal.current   = null;
+      startTimeOriginal.current = null;
       // Reset OCR for end mode
       setOcrKm(null); setConf(null); setPreviewSrc(null); canvasRef.current = null;
     } catch (err) {
@@ -265,8 +264,8 @@ export default function Trip() {
         endLocation:    form.endLocation.trim() || undefined,
         endLocationGps: locationRef.current || undefined,
         endKmManual:    !canvasRef.current,
-        startKmManual:  startKmModified,
-        startTimeManual: startTimeModified,
+        startKmManual:   startKmOriginal.current !== null && parseInt(form.startKm) !== startKmOriginal.current,
+        startTimeManual: startTimeOriginal.current !== null && form.startTime !== startTimeOriginal.current,
         endTimeManual:  !!form.endTime,
         overrideEndTime: form.endTime ? new Date(form.endTime).toISOString() : undefined,
         startKm:        parseInt(form.startKm) || undefined,
@@ -502,7 +501,7 @@ export default function Trip() {
               <div>
                 <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
                 <input type="datetime-local" value={form.startTime}
-                  onChange={e => { set('startTime')(e.target.value); setStartTimeModified(true); }}
+                  onChange={e => set('startTime')(e.target.value)}
                   className={`${fieldClass} text-sm`} />
               </div>
               <div>
