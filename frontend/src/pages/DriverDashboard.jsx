@@ -117,7 +117,7 @@ export default function DriverDashboard() {
                   {(() => {
                     const d = new Date(activeTrip.start_time);
                     const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-                    return `התחיל ב ${hhmm} עם מונה ק״מ ${activeTrip.start_km_confirmed?.toLocaleString()}`;
+                    return `התחיל ב ${hhmm} עם ${activeTrip.start_km_confirmed?.toLocaleString()} ק״מ במונה`;
                   })()}
                 </div>
                 <div className="text-slate-400 text-xs mt-0.5 truncate max-w-[220px]">
