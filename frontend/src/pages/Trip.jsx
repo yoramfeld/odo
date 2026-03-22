@@ -41,10 +41,14 @@ export default function Trip() {
   // Form
   const [form, setForm] = useState({
     startKm: '', startTime: '', startLocation: '',
-    endKm: '', endLocation: '',
+    endKm: '', endTime: '', endLocation: '',
     reason: '', approvedBy: '', notes: '',
   });
   const set = k => v => setForm(f => ({ ...f, [k]: v }));
+
+  // Manual edit tracking
+  const [startKmModified, setStartKmModified]   = useState(false);
+  const [startTimeModified, setStartTimeModified] = useState(false);
 
   // OCR
   const [ocrKm, setOcrKm]         = useState(null);
@@ -83,6 +87,8 @@ export default function Trip() {
       approvedBy:    t.approved_by ?? '',
       notes:         t.notes ?? '',
     }));
+    setStartKmModified(false);
+    setStartTimeModified(false);
   }
 
   async function fetchLocation() {
@@ -117,12 +123,14 @@ export default function Trip() {
       const km = res.data.last_km;
       setLastKm(km);
       setForm(f => ({ ...f, startKm: km != null ? String(km) : '' }));
+      setStartKmModified(false);
       setWarn('');
     });
   }, [carId]);
 
   function handleStartKmChange(val) {
     set('startKm')(val);
+    setStartKmModified(true);
     if (lastKm != null && val !== '' && Math.abs(parseInt(val) - lastKm) > 5) {
       setWarn(`צפוי ${lastKm.toLocaleString()} ק״מ — הוזן ${parseInt(val).toLocaleString()} ק״מ. הוסף הערה במידת הצורך.`);
     } else {
@@ -190,6 +198,7 @@ export default function Trip() {
           set('endKm')(String(data.km));
         } else {
           set('startKm')(String(data.km));
+          setStartKmModified(false);
           if (lastKm != null && Math.abs(data.km - lastKm) > 5) {
             setWarn(`צפוי ${lastKm.toLocaleString()} ק״מ — OCR קרא ${data.km.toLocaleString()} ק״מ.`);
           } else {
@@ -215,6 +224,7 @@ export default function Trip() {
       const { data } = await api.post('/trips/start', {
         carId: parseInt(carId),
         startKm: parseInt(form.startKm),
+        startKmManual: startKmModified,
         reason: form.reason,
         notes: form.notes || undefined,
         startLocation:    form.startLocation.trim() || undefined,
@@ -225,6 +235,8 @@ export default function Trip() {
       const car = cars.find(c => c.id === parseInt(carId));
       setTripId(data.id);
       setTripMeta({ plate: car?.plate, make: car?.make, model: car?.model });
+      setStartKmModified(false);
+      setStartTimeModified(false);
       // Reset OCR for end mode
       setOcrKm(null); setConf(null); setPreviewSrc(null); canvasRef.current = null;
     } catch (err) {
@@ -253,6 +265,10 @@ export default function Trip() {
         endLocation:    form.endLocation.trim() || undefined,
         endLocationGps: locationRef.current || undefined,
         endKmManual:    !canvasRef.current,
+        startKmManual:  startKmModified,
+        startTimeManual: startTimeModified,
+        endTimeManual:  !!form.endTime,
+        overrideEndTime: form.endTime ? new Date(form.endTime).toISOString() : undefined,
         startKm:        parseInt(form.startKm) || undefined,
         startTime:      form.startTime ? new Date(form.startTime).toISOString() : undefined,
         startLocation:  form.startLocation.trim() || undefined,
@@ -479,6 +495,30 @@ export default function Trip() {
               )}
             </div>
           </div>
+
+          {/* Row 4: Start Time | End Time (end mode only) */}
+          {isEndMode && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
+                <input type="datetime-local" value={form.startTime}
+                  onChange={e => { set('startTime')(e.target.value); setStartTimeModified(true); }}
+                  className={`${fieldClass} text-sm`} />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
+                <input type="datetime-local" value={form.endTime}
+                  onChange={e => set('endTime')(e.target.value)}
+                  disabled={!endActive}
+                  placeholder="—"
+                  className={`w-full border rounded-xl px-4 py-3 text-sm
+                    focus:outline-none focus:border-blue-500
+                    ${endActive
+                      ? 'bg-slate-800 border-slate-700 text-white'
+                      : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'}`} />
+              </div>
+            </div>
+          )}
 
         </div>
 

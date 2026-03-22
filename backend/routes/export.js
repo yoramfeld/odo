@@ -49,11 +49,10 @@ router.get('/trips', requireAuth, requireAdmin, async (req, res) => {
          ELSE (
            SELECT STRING_AGG(label, ', ' ORDER BY label)
            FROM (VALUES
-             ('start_km',       'Start KM'),
-             ('start_time',     'Start Time'),
-             ('start_location', 'Start Location'),
-             ('end_km',         'End KM'),
-             ('end_location',   'End Location')
+             ('start_km',   'Start KM'),
+             ('start_time', 'Start Time'),
+             ('end_km',     'End KM'),
+             ('end_time',   'End Time')
            ) AS m(field, label)
            WHERE ',' || t.manual_fields || ',' LIKE '%,' || m.field || ',%'
          )

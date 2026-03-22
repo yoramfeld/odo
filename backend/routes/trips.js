@@ -181,8 +181,8 @@ router.patch('/:id/start-details', requireAuth, async (req, res) => {
 
 // POST /api/trips/start
 router.post('/start', requireAuth, async (req, res) => {
-  const { carId, startKm, reason, notes, startLocation, startLocationGps, approvedBy, endLocation } = req.body;
-  const manualFields = startLocation ? 'start_location' : null;
+  const { carId, startKm, reason, notes, startLocation, startLocationGps, approvedBy, endLocation, startKmManual } = req.body;
+  const manualFields = startKmManual ? 'start_km' : null;
   if (!carId || startKm == null || !reason || !approvedBy || !startLocation || !endLocation) {
     return res.status(400).json({ error: 'carId, startKm, reason, approvedBy, startLocation and endLocation are required' });
   }
@@ -221,7 +221,8 @@ router.post('/start', requireAuth, async (req, res) => {
 
 // PATCH /api/trips/:id/end
 router.patch('/:id/end', requireAuth, async (req, res) => {
-  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endLocationGps, endKmManual,
+  const { endKmOcr, endKmConfirmed, endPhotoBase64, endLocation, endLocationGps,
+          endKmManual, startKmManual, startTimeManual, endTimeManual, overrideEndTime,
           startKm: overrideStartKm, startTime: overrideStartTime, startLocation: overrideStartLocation,
           reason: overrideReason, approvedBy: overrideApprovedBy, notes: overrideNotes } = req.body;
   if (endKmConfirmed == null) {
@@ -248,12 +249,12 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
   const expiresAt = new Date(Date.now() + RETENTION_DAYS * 86_400_000);
 
   // Build manual_fields
-  const prevManual = trip.manual_fields ? trip.manual_fields.split(',') : [];
-  if (endKmManual)           prevManual.push('end_km');
-  if (overrideStartKm)       prevManual.push('start_km');
-  if (overrideStartTime)     prevManual.push('start_time');
-  if (overrideStartLocation) prevManual.push('start_location');
-  if (validation.anomaly)    prevManual.push(validation.anomaly);
+  const prevManual = trip.manual_fields ? trip.manual_fields.split(',').filter(f => f !== 'start_location' && f !== 'end_location') : [];
+  if (endKmManual)       prevManual.push('end_km');
+  if (startKmManual)     prevManual.push('start_km');
+  if (startTimeManual)   prevManual.push('start_time');
+  if (endTimeManual)     prevManual.push('end_time');
+  if (validation.anomaly) prevManual.push(validation.anomaly);
   const manualFields = prevManual.length ? [...new Set(prevManual)].join(',') : null;
 
   const { rows } = await db.query(
@@ -261,22 +262,23 @@ router.patch('/:id/end', requireAuth, async (req, res) => {
        end_km_ocr       = $1,
        end_km_confirmed = $2,
        end_photo        = $3,
-       end_time         = NOW(),
+       end_time         = COALESCE($4::timestamptz, NOW()),
        status           = 'completed',
-       speed_flag       = $4,
-       avg_speed_kmh    = $5,
-       photo_expires_at = $6,
-       end_location          = $7,
-       end_location_gps      = $8,
-       manual_fields         = $9,
-       start_km_confirmed    = COALESCE($10, start_km_confirmed),
-       start_time            = COALESCE($11::timestamptz, start_time),
-       start_location        = COALESCE($12, start_location),
-       reason                = COALESCE($13, reason),
-       approved_by           = COALESCE($14, approved_by),
-       notes                 = COALESCE($15, notes)
-     WHERE id = $16 RETURNING *`,
+       speed_flag       = $5,
+       avg_speed_kmh    = $6,
+       photo_expires_at = $7,
+       end_location          = $8,
+       end_location_gps      = $9,
+       manual_fields         = $10,
+       start_km_confirmed    = COALESCE($11, start_km_confirmed),
+       start_time            = COALESCE($12::timestamptz, start_time),
+       start_location        = COALESCE($13, start_location),
+       reason                = COALESCE($14, reason),
+       approved_by           = COALESCE($15, approved_by),
+       notes                 = COALESCE($16, notes)
+     WHERE id = $17 RETURNING *`,
     [endKmOcr || null, finalKm, photoBuffer,
+     overrideEndTime || null,
      validation.speedFlag || false, validation.speed || null,
      photoBuffer ? expiresAt : null, endLocation || null,
      endLocationGps || null, manualFields,
