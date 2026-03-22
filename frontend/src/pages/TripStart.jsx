@@ -34,18 +34,18 @@ export default function TripStart() {
   const [reason, setReason]         = useState('');
   const [approvedBy, setApprovedBy] = useState('');
   const [notes, setNotes]           = useState('');
+  const [locationText, setLocationText] = useState('');
   const [suggestions, setSuggestions] = useState({ reason: [], approved_by: [], start_location: [] });
   const [warn, setWarn]         = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [carsLoading, setCarsLoading] = useState(true);
-  const [ocrLoading, setOcrLoading]       = useState(false);
-  const [previewSrc, setPreviewSrc]       = useState(null);
-  const [confidence, setConf]             = useState(null);
-  const [locationText, setLocationText]   = useState('');
-  const cameraRef   = useRef();
-  const canvasRef   = useRef(null);
-  const locationRef = useRef(null); // silently captured GPS address
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState(null);
+  const [confidence, setConf]   = useState(null);
+  const cameraRef = useRef();
+  const canvasRef = useRef(null);
+  const locationRef = useRef(null);
 
   async function fetchLocation() {
     const result = await getLocationFull();
@@ -58,16 +58,12 @@ export default function TripStart() {
     }
   }
 
-  // Load cars + suggestions + location
   useEffect(() => {
-    api.get('/cars')
-      .then(res => setCars(res.data))
-      .finally(() => setCarsLoading(false));
+    api.get('/cars').then(res => setCars(res.data)).finally(() => setCarsLoading(false));
     api.get('/trips/suggestions').then(r => setSuggestions(r.data)).catch(() => {});
     fetchLocation();
   }, []);
 
-  // When car changes, fetch last known KM
   useEffect(() => {
     if (!carId) { setLastKm(null); setStartKm(''); setWarn(''); return; }
     api.get(`/trips/car/${carId}/last-end-km`).then(res => {
@@ -78,7 +74,6 @@ export default function TripStart() {
     });
   }, [carId]);
 
-  // Warn if driver edits KM away from expected
   function handleKmChange(val) {
     setStartKm(val);
     if (lastKm != null && val !== '' && Math.abs(parseInt(val) - lastKm) > 5) {
@@ -163,7 +158,7 @@ export default function TripStart() {
     setError('');
     setLoading(true);
     try {
-      const { data } = await api.post('/trips/start', {
+      await api.post('/trips/start', {
         carId: parseInt(carId),
         startKm: parseInt(startKm),
         reason,
@@ -180,6 +175,8 @@ export default function TripStart() {
     }
   }
 
+  const fieldClass = "w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500";
+
   return (
     <div dir="rtl" className="min-h-dvh flex flex-col max-w-lg mx-auto">
 
@@ -189,174 +186,145 @@ export default function TripStart() {
         <h1 className="text-white font-bold text-lg">התחל נסיעה</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 px-5 py-5 space-y-5">
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+        <div className="flex-1 px-5 py-4 space-y-3 overflow-y-auto">
 
-        {/* Car selector */}
-        <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            רכב
-          </label>
-          {carsLoading ? (
-            <div className="text-slate-500 text-sm">טוען רכבים…</div>
-          ) : (
-            <select
-              value={carId}
-              onChange={e => setCarId(e.target.value)}
-              required
+          {/* Car selector */}
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">רכב</label>
+            {carsLoading ? (
+              <div className="text-slate-500 text-sm">טוען רכבים…</div>
+            ) : (
+              <select value={carId} onChange={e => setCarId(e.target.value)} required
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
+                           text-white text-base focus:outline-none focus:border-blue-500">
+                <option value="">בחר רכב…</option>
+                {cars.map(c => (
+                  <option key={c.id} value={c.id}>{c.plate} — {c.make} {c.model}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Row 1: Reason | Approved By */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">סיבת הנסיעה</label>
+              <AutocompleteInput value={reason} onChange={setReason}
+                suggestions={suggestions.reason || []} placeholder="מנהלי, בט״ש…"
+                required className={fieldClass} />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">באישור</label>
+              <AutocompleteInput value={approvedBy} onChange={setApprovedBy}
+                suggestions={suggestions.approved_by || []} placeholder="ק.אגם, אח״מ…"
+                required className={fieldClass} />
+            </div>
+          </div>
+
+          {/* Row 2: Start Location | End Location (disabled) */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">מיקום התחלה</label>
+              <AutocompleteInput value={locationText} onChange={setLocationText}
+                suggestions={suggestions.start_location || []} placeholder="הזן מיקום…"
+                required className={fieldClass} />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">מיקום סיום</label>
+              <input disabled placeholder="—"
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
+                           text-slate-600 text-sm cursor-not-allowed" />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">
+              הערות <span className="normal-case text-slate-600">(אופציונלי)</span>
+            </label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)}
+              rows={2} placeholder="הערות נוספות…"
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                         text-white text-base focus:outline-none focus:border-blue-500"
-            >
-              <option value="">בחר רכב…</option>
-              {cars.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.plate} — {c.make} {c.model}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        {/* Start KM */}
-        <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            מד קילומטר התחלתי
-          </label>
-          {lastKm != null && (
-            <p className="text-slate-500 text-xs mb-2">
-              אחרון מתועד: <span className="text-slate-300">{lastKm.toLocaleString()} ק״מ</span>
-            </p>
-          )}
+                         text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
+          </div>
 
           {/* OCR preview */}
           {previewSrc && (
             <img src={previewSrc} alt="odometer"
-              className="w-full rounded-xl mb-3 object-contain bg-black"
+              className="w-full rounded-xl object-contain bg-black"
               style={{ maxHeight: '30dvh' }} />
           )}
 
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment"
-            className="hidden" onChange={e => handleFile(e.target.files[0])} />
-
-          <div className="relative">
-            <input
-              type="number"
-              inputMode="numeric"
-              value={startKm}
-              onChange={e => handleKmChange(e.target.value)}
-              required
-              min={0}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pl-12
-                         text-white text-2xl font-bold focus:outline-none focus:border-blue-500
-                         [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
-                         [&::-webkit-inner-spin-button]:appearance-none"
-            />
-            <button type="button" onClick={() => cameraRef.current.click()}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl leading-none">
-              {ocrLoading
-                ? <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                  </svg>
-                : '📷'}
-            </button>
+          {/* Row 3: Start KM | End KM (disabled) */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">
+                ק״מ התחלה
+                {confidence && (
+                  <span className={`mr-2 px-1.5 py-0.5 rounded-full text-xs border
+                    ${confidence === 'high' ? 'bg-green-950 text-green-400 border-green-800'
+                    : confidence === 'low'  ? 'bg-amber-950 text-amber-400 border-amber-800'
+                                           : 'bg-red-950 text-red-400 border-red-800'}`}>
+                    {confidence}
+                  </span>
+                )}
+              </label>
+              {lastKm != null && (
+                <p className="text-slate-500 text-xs mb-1.5">
+                  אחרון: <span className="text-slate-300">{lastKm.toLocaleString()} ק״מ</span>
+                </p>
+              )}
+              <div className="relative">
+                <input type="number" inputMode="numeric" value={startKm}
+                  onChange={e => handleKmChange(e.target.value)} required min={0}
+                  className={`w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pl-10
+                    text-white text-xl font-bold focus:outline-none focus:border-blue-500
+                    [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
+                    [&::-webkit-inner-spin-button]:appearance-none`} />
+                <button type="button" onClick={() => cameraRef.current.click()}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg leading-none">
+                  {ocrLoading
+                    ? <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                      </svg>
+                    : '📷'}
+                </button>
+              </div>
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+                className="hidden" onChange={e => handleFile(e.target.files[0])} />
+              {warn && (
+                <div className="mt-1.5 bg-amber-950 border border-amber-800 text-amber-400
+                                text-xs rounded-xl px-3 py-2">
+                  ⚠️ {warn}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">ק״מ סיום</label>
+              <input disabled placeholder="—"
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
+                           text-slate-600 text-xl font-bold cursor-not-allowed
+                           [appearance:textfield]" />
+            </div>
           </div>
 
-          {confidence && (
-            <p className="text-xs mt-1.5">
-              <span className={`px-2 py-0.5 rounded-full border text-xs
-                ${confidence === 'high' ? 'bg-green-950 text-green-400 border-green-800'
-                : confidence === 'low'  ? 'bg-amber-950 text-amber-400 border-amber-800'
-                                        : 'bg-red-950 text-red-400 border-red-800'}`}>
-                {confidence}
-              </span>
-            </p>
-          )}
-          {warn && (
-            <div className="mt-2 bg-amber-950 border border-amber-800 text-amber-400
-                            text-sm rounded-xl px-4 py-3">
-              ⚠️ {warn}
+        </div>
+
+        {/* Bottom */}
+        <div className="px-5 pb-6 pt-2 space-y-3">
+          {error && (
+            <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-3">
+              {error}
             </div>
           )}
+          <button type="submit" disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40
+                       text-white font-bold rounded-2xl py-4 text-lg transition-colors">
+            {loading ? 'מתחיל…' : 'התחל נסיעה ←'}
+          </button>
         </div>
-
-        {/* Reason */}
-        <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            סיבת הנסיעה
-          </label>
-          <AutocompleteInput
-            value={reason}
-            onChange={setReason}
-            suggestions={suggestions.reason}
-            placeholder="מנהלי, בט״ש, מבצעי…"
-            required
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                       text-white focus:outline-none focus:border-blue-500"
-          />
-        </div>
-
-        {/* Approved by */}
-        <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            באישור
-          </label>
-          <AutocompleteInput
-            value={approvedBy}
-            onChange={setApprovedBy}
-            suggestions={suggestions.approved_by}
-            placeholder="ק.אגם, אח״מ…"
-            required
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                       text-white focus:outline-none focus:border-blue-500"
-          />
-        </div>
-
-        {/* Notes */}
-        <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            הערות <span className="normal-case text-slate-600">(אופציונלי)</span>
-          </label>
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            rows={2}
-            placeholder="הערות נוספות…"
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                       text-white focus:outline-none focus:border-blue-500 resize-none"
-          />
-        </div>
-
-        {/* Location */}
-        <div>
-          <label className="block text-xs text-slate-400 uppercase tracking-widest mb-2">
-            מיקום התחלה
-          </label>
-          <AutocompleteInput
-            value={locationText}
-            onChange={setLocationText}
-            suggestions={suggestions.start_location}
-            placeholder="הזן מיקום…"
-            required
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
-                       text-white text-sm focus:outline-none focus:border-blue-500"
-          />
-        </div>
-
-        {error && (
-          <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-3">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40
-                     text-white font-bold rounded-2xl py-4 text-lg transition-colors"
-        >
-          {loading ? 'מתחיל…' : 'התחל נסיעה ←'}
-        </button>
-
       </form>
     </div>
   );

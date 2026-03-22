@@ -121,7 +121,7 @@ export default function DriverDashboard() {
                 </div>
               </div>
               <button
-                onClick={() => navigate(`/trip/end/${activeTrip.id}`)}
+                onClick={() => navigate('/trip')}
                 className="bg-green-600 hover:bg-green-500 text-white font-semibold
                            rounded-xl px-4 py-3 text-sm flex-shrink-0 mr-3"
               >
@@ -134,7 +134,7 @@ export default function DriverDashboard() {
         {/* Start new trip */}
         {!activeTrip && (
           <button
-            onClick={() => navigate('/trip/start')}
+            onClick={() => navigate('/trip')}
             className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold
                        rounded-2xl py-5 text-lg transition-colors"
           >

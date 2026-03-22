@@ -1,8 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login           from './pages/Login';
 import DriverDashboard from './pages/DriverDashboard';
-import TripStart       from './pages/TripStart';
-import TripEnd         from './pages/TripEnd';
+import Trip            from './pages/Trip';
 import AdminPanel      from './pages/AdminPanel';
 import { useAuth }     from './api/auth';
 
@@ -23,11 +22,8 @@ export default function App() {
         <Route path="/" element={
           <RequireAuth><DriverDashboard /></RequireAuth>
         } />
-        <Route path="/trip/start" element={
-          <RequireAuth><TripStart /></RequireAuth>
-        } />
-        <Route path="/trip/end/:tripId" element={
-          <RequireAuth><TripEnd /></RequireAuth>
+        <Route path="/trip" element={
+          <RequireAuth><Trip /></RequireAuth>
         } />
         <Route path="/admin" element={
           <RequireAuth role="admin"><AdminPanel /></RequireAuth>
