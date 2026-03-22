@@ -80,7 +80,8 @@ export default function Trip() {
 
   function makeTimeHandlers(elRef, vpRef) {
     return {
-      onFocus() {
+      onFocus(e) {
+        e.target.select();
         const scroll = () => elRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         vpRef.current = scroll;
         window.visualViewport?.addEventListener('resize', scroll);
