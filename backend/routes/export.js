@@ -34,14 +34,30 @@ router.get('/trips', requireAuth, requireAdmin, async (req, res) => {
          LPAD(EXTRACT(MINUTE FROM (t.end_time - t.start_time))::int::text, 2, '0')
        END                                                         AS "Duration (hh:mm)",
        t.start_location                                            AS "Start Location",
+       t.start_location_gps                                        AS "Start GPS",
        t.end_location                                              AS "End Location",
+       t.end_location_gps                                          AS "End GPS",
        t.reason                                                    AS "Reason",
        t.approved_by                                               AS "Approved By",
        t.notes                                                     AS "Notes",
        CASE WHEN t.discrepancy_flag THEN 'Yes' ELSE '' END        AS "Discrepancy Flag",
        t.discrepancy_delta                                         AS "Discrepancy Delta",
        CASE WHEN t.speed_flag THEN 'Yes' ELSE '' END              AS "Speed Flag",
-       t.avg_speed_kmh                                             AS "Avg Speed (km/h)"
+       t.avg_speed_kmh                                             AS "Avg Speed (km/h)",
+       CASE
+         WHEN t.manual_fields IS NULL OR t.manual_fields = '' THEN ''
+         ELSE (
+           SELECT STRING_AGG(label, ', ' ORDER BY label)
+           FROM (VALUES
+             ('start_km',       'Start KM'),
+             ('start_time',     'Start Time'),
+             ('start_location', 'Start Location'),
+             ('end_km',         'End KM'),
+             ('end_location',   'End Location')
+           ) AS m(field, label)
+           WHERE ',' || t.manual_fields || ',' LIKE '%,' || m.field || ',%'
+         )
+       END                                                         AS "Manual Entries"
      FROM trips t
      JOIN cars  c ON c.id = t.car_id
      JOIN users u ON u.id = t.driver_id
