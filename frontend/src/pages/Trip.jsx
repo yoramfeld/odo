@@ -78,6 +78,7 @@ export default function Trip() {
       startKm:       String(t.start_km_confirmed ?? ''),
       startTime:     localDT,
       startLocation: t.start_location ?? '',
+      endLocation:   t.end_location ?? '',
       reason:        t.reason ?? '',
       approvedBy:    t.approved_by ?? '',
       notes:         t.notes ?? '',
@@ -218,7 +219,8 @@ export default function Trip() {
         notes: form.notes || undefined,
         startLocation:    form.startLocation.trim() || undefined,
         startLocationGps: locationRef.current || undefined,
-        approvedBy: form.approvedBy.trim() || undefined,
+        approvedBy:       form.approvedBy.trim() || undefined,
+        endLocation:      form.endLocation.trim() || undefined,
       });
       const car = cars.find(c => c.id === parseInt(carId));
       setTripId(data.id);
@@ -272,8 +274,9 @@ export default function Trip() {
     setError('');
     setAnomaly(null);
     if (!isEndMode) {
-      if (!form.startKm)             { setError('אנא הזן מד קילומטר התחלתי'); return; }
+      if (!form.startKm)              { setError('אנא הזן מד קילומטר התחלתי'); return; }
       if (!form.startLocation.trim()) { setError('אנא הזן מיקום התחלה'); return; }
+      if (!form.endLocation.trim())   { setError('אנא הזן מיקום סיום'); return; }
       if (!form.reason.trim())        { setError('אנא הזן סיבת נסיעה'); return; }
       await doStart();
     } else {
@@ -369,15 +372,9 @@ export default function Trip() {
             </div>
             <div>
               <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">מיקום סיום</label>
-              {isEndMode ? (
-                <AutocompleteInput value={form.endLocation} onChange={set('endLocation')}
-                  suggestions={suggestions.end_location || []} placeholder="הזן מיקום…"
-                  required className={fieldClass} />
-              ) : (
-                <input disabled placeholder="—"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
-                             text-slate-600 text-sm cursor-not-allowed" />
-              )}
+              <AutocompleteInput value={form.endLocation} onChange={set('endLocation')}
+                suggestions={suggestions.end_location || []} placeholder="הזן מיקום…"
+                required className={fieldClass} />
             </div>
           </div>
 
@@ -387,7 +384,7 @@ export default function Trip() {
               הערות <span className="normal-case text-slate-600">(אופציונלי)</span>
             </label>
             <textarea value={form.notes} onChange={e => set('notes')(e.target.value)}
-              rows={2} placeholder="הערות נוספות…"
+              rows={1} placeholder="הערות נוספות…"
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3
                          text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
           </div>
@@ -410,11 +407,6 @@ export default function Trip() {
                   </span>
                 )}
               </label>
-              {!isEndMode && lastKm != null && (
-                <p className="text-slate-500 text-xs mb-1.5">
-                  אחרון: <span className="text-slate-300">{lastKm.toLocaleString()} ק״מ</span>
-                </p>
-              )}
               <div className="relative">
                 <input type="number" inputMode="numeric" value={form.startKm}
                   onChange={e => isEndMode ? set('startKm')(e.target.value) : handleStartKmChange(e.target.value)}
@@ -522,7 +514,7 @@ export default function Trip() {
 
           {!anomaly && (
             <button type="submit" disabled={loading}
-              className={`w-full font-bold rounded-2xl py-4 text-lg transition-colors
+              className={`w-full font-bold rounded-2xl py-2.5 text-base transition-colors
                 ${isEndMode && endActive
                   ? 'bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white'
                   : 'bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white'}`}>

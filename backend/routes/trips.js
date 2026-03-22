@@ -181,10 +181,10 @@ router.patch('/:id/start-details', requireAuth, async (req, res) => {
 
 // POST /api/trips/start
 router.post('/start', requireAuth, async (req, res) => {
-  const { carId, startKm, reason, notes, startLocation, startLocationGps, approvedBy } = req.body;
+  const { carId, startKm, reason, notes, startLocation, startLocationGps, approvedBy, endLocation } = req.body;
   const manualFields = startLocation ? 'start_location' : null;
-  if (!carId || startKm == null || !reason || !approvedBy || !startLocation) {
-    return res.status(400).json({ error: 'carId, startKm, reason, approvedBy and startLocation are required' });
+  if (!carId || startKm == null || !reason || !approvedBy || !startLocation || !endLocation) {
+    return res.status(400).json({ error: 'carId, startKm, reason, approvedBy, startLocation and endLocation are required' });
   }
 
   // Only one active trip per car
@@ -209,11 +209,11 @@ router.post('/start', requireAuth, async (req, res) => {
 
   const { rows } = await db.query(
     `INSERT INTO trips (car_id, driver_id, start_km_confirmed, start_time, reason, notes,
-                        discrepancy_flag, discrepancy_delta, start_location, start_location_gps, approved_by, manual_fields)
-     VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+                        discrepancy_flag, discrepancy_delta, start_location, start_location_gps, approved_by, manual_fields, end_location)
+     VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
     [carId, req.user.id, startKm, reason, notes || null,
      discrepancy, discrepancy ? delta : null,
-     startLocation || null, startLocationGps || null, approvedBy || null, manualFields]
+     startLocation || null, startLocationGps || null, approvedBy || null, manualFields, endLocation]
   );
 
   res.status(201).json(rows[0]);
