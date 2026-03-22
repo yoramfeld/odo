@@ -1,18 +1,26 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 export default function AutocompleteInput({ value, onChange, suggestions = [], placeholder, className, ...props }) {
   const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
 
   const filtered = suggestions.filter(s =>
     s !== value && (value === '' || s.includes(value))
   );
 
+  function handleFocus() {
+    setOpen(true);
+    setTimeout(() => {
+      wrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }
+
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapRef}>
       <input
         value={value}
         onChange={e => { onChange(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
+        onFocus={handleFocus}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder={placeholder}
         className={className}
