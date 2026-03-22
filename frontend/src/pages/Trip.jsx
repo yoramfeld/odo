@@ -78,6 +78,9 @@ export default function Trip() {
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
+  const getTime = dt => dt ? dt.slice(11, 16) : '';
+  const setTime = (dt, t) => dt ? dt.slice(0, 11) + t : dt;
+
   function prefillForm(t) {
     const startDT = toDateTimeLocal(new Date(t.start_time));
     const endDT   = toDateTimeLocal(new Date());
@@ -415,8 +418,8 @@ export default function Trip() {
             <div>
               <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
               {isEndMode ? (
-                <input type="datetime-local" value={form.startTime}
-                  onChange={e => set('startTime')(e.target.value)}
+                <input type="time" value={getTime(form.startTime)}
+                  onChange={e => set('startTime')(setTime(form.startTime, e.target.value))}
                   className={`${fieldClass} text-sm`} />
               ) : (
                 <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
@@ -428,8 +431,8 @@ export default function Trip() {
             <div>
               <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
               {isEndMode ? (
-                <input type="datetime-local" value={form.endTime}
-                  onChange={e => set('endTime')(e.target.value)}
+                <input type="time" value={getTime(form.endTime)}
+                  onChange={e => set('endTime')(setTime(form.endTime, e.target.value))}
                   className={`${fieldClass} text-sm`} />
               ) : (
                 <input disabled placeholder="—"
