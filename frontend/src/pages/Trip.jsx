@@ -73,14 +73,19 @@ export default function Trip() {
 
   const isEndMode = tripId !== null;
 
-  function prefillForm(t) {
-    const d = new Date(t.start_time);
+  function toDateTimeLocal(d) {
     const pad = n => String(n).padStart(2, '0');
-    const localDT = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function prefillForm(t) {
+    const startDT = toDateTimeLocal(new Date(t.start_time));
+    const endDT   = toDateTimeLocal(new Date());
     setForm(f => ({
       ...f,
       startKm:       String(t.start_km_confirmed ?? ''),
-      startTime:     localDT,
+      startTime:     startDT,
+      endTime:       endDT,
       startLocation: t.start_location ?? '',
       endLocation:   t.end_location ?? '',
       reason:        t.reason ?? '',
@@ -88,7 +93,7 @@ export default function Trip() {
       notes:         t.notes ?? '',
     }));
     startKmOriginal.current   = t.start_km_confirmed ?? null;
-    startTimeOriginal.current = localDT;
+    startTimeOriginal.current = startDT;
   }
 
   async function fetchLocation() {
@@ -234,6 +239,7 @@ export default function Trip() {
       const car = cars.find(c => c.id === parseInt(carId));
       setTripId(data.id);
       setTripMeta({ plate: car?.plate, make: car?.make, model: car?.model });
+      set('endTime')(toDateTimeLocal(new Date()));
       startKmOriginal.current   = null;
       startTimeOriginal.current = null;
       // Reset OCR for end mode
@@ -424,12 +430,7 @@ export default function Trip() {
               {isEndMode ? (
                 <input type="datetime-local" value={form.endTime}
                   onChange={e => set('endTime')(e.target.value)}
-                  disabled={!endActive}
-                  className={`w-full border rounded-xl px-4 py-3 text-sm
-                    focus:outline-none focus:border-blue-500
-                    ${endActive
-                      ? 'bg-slate-800 border-slate-700 text-white'
-                      : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'}`} />
+                  className={`${fieldClass} text-sm`} />
               ) : (
                 <input disabled placeholder="—"
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
