@@ -359,7 +359,7 @@ export default function Trip() {
     <div dir="rtl" className="min-h-dvh flex flex-col max-w-lg mx-auto">
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-800">
+      <div className="flex items-center gap-3 px-5 py-2 border-b border-slate-800">
         <button onClick={() => navigate('/')} className="text-slate-400 text-2xl leading-none">›</button>
         <h1 className="text-white font-bold text-lg">
           {isEndMode ? 'סיים נסיעה' : 'התחל נסיעה'}
@@ -372,12 +372,12 @@ export default function Trip() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-        <div className="flex-1 px-5 pt-2 pb-4 space-y-3 overflow-y-auto">
+        <div className="flex-1 px-5 pt-1 pb-2 space-y-2 overflow-y-auto">
 
           {/* Car selector (start mode only) */}
           {!isEndMode && (
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">רכב</label>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">רכב</label>
               {carsLoading ? (
                 <div className="text-slate-500 text-sm">טוען רכבים…</div>
               ) : (
@@ -396,13 +396,13 @@ export default function Trip() {
           {/* Row 1: Reason | Approved By */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">סיבת הנסיעה</label>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">סיבת הנסיעה</label>
               <AutocompleteInput value={form.reason} onChange={set('reason')}
                 suggestions={suggestions.reason || []} placeholder="מנהלי, בט״ש…"
                 required className={fieldClass} />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">באישור</label>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">באישור</label>
               <AutocompleteInput value={form.approvedBy} onChange={set('approvedBy')}
                 suggestions={suggestions.approved_by || []} placeholder="ק.אגם, אח״מ…"
                 required className={fieldClass} />
@@ -412,13 +412,13 @@ export default function Trip() {
           {/* Row 2: Start Location | End Location */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">מיקום התחלה</label>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">מיקום התחלה</label>
               <AutocompleteInput value={form.startLocation} onChange={set('startLocation')}
                 suggestions={suggestions.start_location || []} placeholder="הזן מיקום…"
                 required className={fieldClass} />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">מיקום סיום</label>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">מיקום סיום</label>
               <AutocompleteInput value={form.endLocation} onChange={set('endLocation')}
                 suggestions={suggestions.end_location || []} placeholder="הזן מיקום…"
                 required className={fieldClass} />
@@ -427,7 +427,7 @@ export default function Trip() {
 
           {/* Notes */}
           <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">
+            <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">
               הערות <span className="normal-case text-slate-600">(אופציונלי)</span>
             </label>
             <textarea value={form.notes} onChange={e => set('notes')(e.target.value)}
@@ -441,7 +441,7 @@ export default function Trip() {
             {isEndMode ? (
               <>
                 <div ref={startTimeRef}>
-                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
+                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">שעת התחלה</label>
                   <input type="text" inputMode="numeric" placeholder="HH:MM"
                     value={getTime(form.startTime)}
                     onChange={e => set('startTime')(form.startTime.slice(0,11) + e.target.value)}
@@ -449,7 +449,7 @@ export default function Trip() {
                     className={`${fieldClass} text-sm font-mono`} />
                 </div>
                 <div ref={endTimeRef}>
-                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
+                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">שעת סיום</label>
                   <input type="text" inputMode="numeric" placeholder="HH:MM"
                     value={getTime(form.endTime)}
                     onChange={e => set('endTime')(form.endTime.slice(0,11) + e.target.value)}
@@ -460,13 +460,13 @@ export default function Trip() {
             ) : (
               <>
                 <div>
-                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
+                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">שעת התחלה</label>
                   <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-slate-300 text-sm">
                     {(() => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; })()}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
+                  <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">שעת סיום</label>
                   <input disabled placeholder="—"
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2
                                text-slate-600 text-sm cursor-not-allowed" />
@@ -485,7 +485,7 @@ export default function Trip() {
           {/* Row 4: Start KM | End KM */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">
                 ק״מ התחלה
                 {!isEndMode && confidence && (
                   <span className={`mr-2 px-1.5 py-0.5 rounded-full text-xs border ${badgeClass(confidence)}`}>
@@ -522,7 +522,7 @@ export default function Trip() {
               )}
             </div>
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1">
                 ק״מ סיום
                 {isEndMode && confidence && (
                   <span className={`mr-2 px-1.5 py-0.5 rounded-full text-xs border ${badgeClass(confidence)}`}>
@@ -574,7 +574,7 @@ export default function Trip() {
           className="hidden" onChange={e => handleFile(e.target.files[0])} />
 
         {/* Bottom */}
-        <div className="px-5 pb-6 pt-2 space-y-3">
+        <div className="px-5 pb-4 pt-1 space-y-2">
 
           {anomaly && (
             <div className="bg-amber-950 border border-amber-800 rounded-2xl px-4 py-2 space-y-3">
