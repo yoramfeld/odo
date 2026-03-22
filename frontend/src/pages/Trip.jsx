@@ -49,6 +49,7 @@ export default function Trip() {
   // Original auto-filled values — compare at submit to detect real changes
   const startKmOriginal   = useRef(null);  // numeric km from lastKm/OCR
   const startTimeOriginal = useRef(null);  // datetime-local string from prefillForm
+  const endTimeOriginal   = useRef(null);  // datetime-local string auto-filled at end mode entry
 
   // OCR
   const [ocrKm, setOcrKm]         = useState(null);
@@ -105,6 +106,7 @@ export default function Trip() {
   function prefillForm(t) {
     const startDT = toDateTimeLocal(new Date(t.start_time));
     const endDT   = toDateTimeLocal(new Date());
+    endTimeOriginal.current = endDT;
     setForm(f => ({
       ...f,
       startKm:       String(t.start_km_confirmed ?? ''),
@@ -259,9 +261,11 @@ export default function Trip() {
       const startDT = toDateTimeLocal(new Date(data.start_time));
       setTripId(data.id);
       setTripMeta({ plate: car?.plate, make: car?.make, model: car?.model });
-      setForm(f => ({ ...f, startTime: startDT, endTime: toDateTimeLocal(new Date()) }));
+      const endDT = toDateTimeLocal(new Date());
+      setForm(f => ({ ...f, startTime: startDT, endTime: endDT }));
       startKmOriginal.current   = data.start_km_confirmed ?? null;
       startTimeOriginal.current = startDT;
+      endTimeOriginal.current   = endDT;
       // Reset OCR for end mode
       setOcrKm(null); setConf(null); setPreviewSrc(null); canvasRef.current = null;
     } catch (err) {
@@ -292,8 +296,9 @@ export default function Trip() {
         endKmManual:    !canvasRef.current,
         startKmManual:   startKmOriginal.current !== null && parseInt(form.startKm) !== startKmOriginal.current,
         startTimeManual: startTimeOriginal.current !== null && form.startTime !== startTimeOriginal.current,
-        endTimeManual:  !!form.endTime,
-        overrideEndTime: form.endTime ? new Date(form.endTime).toISOString() : undefined,
+        endTimeManual:   endTimeOriginal.current !== null && form.endTime !== endTimeOriginal.current,
+        overrideEndTime: endTimeOriginal.current !== null && form.endTime !== endTimeOriginal.current
+          ? new Date(form.endTime).toISOString() : undefined,
         startKm:        parseInt(form.startKm) || undefined,
         startTime:      form.startTime ? new Date(form.startTime).toISOString() : undefined,
         startLocation:  form.startLocation.trim() || undefined,
