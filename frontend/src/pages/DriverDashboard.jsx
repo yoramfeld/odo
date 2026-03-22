@@ -36,17 +36,17 @@ function TripCard({ trip }) {
         <span className="text-slate-500 text-xs truncate">{trip.reason}</span>
       </div>
 
-      {/* Row 2: start time → end time (duration) */}
+      {/* Row 2: start time ←end time (duration) */}
       <div className="text-xs text-slate-400">
-        {hhmm(start)}{end ? ` → ${hhmm(end)}` : ''}
+        {hhmm(start)}{end ? ` ← ${hhmm(end)}` : ''}
         {dur && <span className="text-slate-500"> ({dur})</span>}
       </div>
 
-      {/* Row 3: start KM → end KM (distance) */}
+      {/* Row 3: start KM ←end KM (distance) */}
       {trip.start_km_confirmed != null && (
         <div className="text-xs text-slate-400">
           {trip.start_km_confirmed.toLocaleString()} ק״מ
-          {trip.end_km_confirmed != null && ` → ${trip.end_km_confirmed.toLocaleString()} ק״מ`}
+          {trip.end_km_confirmed != null && ` ← ${trip.end_km_confirmed.toLocaleString()} ק״מ`}
           {trip.distance_km != null && <span className="text-slate-500"> ({trip.distance_km} ק״מ)</span>}
         </div>
       )}
