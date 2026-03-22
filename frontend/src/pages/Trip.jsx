@@ -382,7 +382,7 @@ export default function Trip() {
                 <div className="text-slate-500 text-sm">טוען רכבים…</div>
               ) : (
                 <select value={carId} onChange={e => setCarId(e.target.value)} required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-1.5
                              text-white text-base focus:outline-none focus:border-blue-500">
                   <option value="">בחר רכב…</option>
                   {cars.map(c => (
