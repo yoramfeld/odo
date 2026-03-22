@@ -107,30 +107,30 @@ export default function DriverDashboard() {
         {/* Active trip banner */}
         {activeTrip && (
           <div className="bg-blue-950 border border-blue-800 rounded-2xl p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-xs text-blue-400 uppercase tracking-widest mb-1">נסיעה פעילה</div>
-                <div className="text-white font-bold text-lg">
-                  {activeTrip.plate} {activeTrip.make} {activeTrip.model}
-                </div>
-                <div className="text-blue-300 text-sm mt-0.5">
-                  {(() => {
-                    const d = new Date(activeTrip.start_time);
-                    const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-                    return `התחיל ב ${hhmm} עם ${activeTrip.start_km_confirmed?.toLocaleString()} ק״מ במונה`;
-                  })()}
-                </div>
-                <div className="text-slate-400 text-xs mt-0.5 truncate max-w-[220px]">
-                  {activeTrip.reason}
-                </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-xs text-blue-400 uppercase tracking-widest">נסיעה פעילה</div>
+                <button
+                  onClick={() => navigate('/trip')}
+                  className="bg-green-600 hover:bg-green-500 text-white font-semibold
+                             rounded-xl px-4 py-2 text-sm flex-shrink-0"
+                >
+                  סיים נסיעה
+                </button>
               </div>
-              <button
-                onClick={() => navigate('/trip')}
-                className="bg-green-600 hover:bg-green-500 text-white font-semibold
-                           rounded-xl px-4 py-2 text-sm flex-shrink-0"
-              >
-                סיים נסיעה
-              </button>
+              <div className="text-white font-bold text-lg">
+                {activeTrip.plate} {activeTrip.make} {activeTrip.model}
+              </div>
+              <div className="text-blue-300 text-sm mt-0.5">
+                {(() => {
+                  const d = new Date(activeTrip.start_time);
+                  const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+                  return `התחיל ב ${hhmm} עם ${activeTrip.start_km_confirmed?.toLocaleString()} ק״מ במונה`;
+                })()}
+              </div>
+              <div className="text-slate-400 text-xs mt-0.5">
+                {activeTrip.reason}
+              </div>
             </div>
           </div>
         )}
