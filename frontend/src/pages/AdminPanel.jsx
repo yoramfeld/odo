@@ -305,7 +305,7 @@ function TripsTab({ cars, drivers }) {
                     {fmtDT(t.start_time)}
                   </div>
                   <div className="text-slate-400">
-                    {fmtDT(t.end_time) ?? <span className="text-slate-600">—</span>}
+                    {t.end_time ? (() => { const d = new Date(t.end_time); const p = n => String(n).padStart(2,'0'); return `${p(d.getHours())}:${p(d.getMinutes())}`; })() : <span className="text-slate-600">—</span>}
                     {duration && <span className="text-slate-500 ml-1">({duration})</span>}
                   </div>
 
