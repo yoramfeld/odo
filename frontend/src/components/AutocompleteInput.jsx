@@ -3,16 +3,28 @@ import { useState, useRef } from 'react';
 export default function AutocompleteInput({ value, onChange, suggestions = [], placeholder, className, ...props }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const vpHandler = useRef(null);
 
   const filtered = suggestions.filter(s =>
     s !== value && (value === '' || s.includes(value))
   );
 
+  function scrollIntoView() {
+    wrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   function handleFocus() {
     setOpen(true);
-    setTimeout(() => {
-      wrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
+    vpHandler.current = scrollIntoView;
+    window.visualViewport?.addEventListener('resize', scrollIntoView);
+  }
+
+  function handleBlur() {
+    setTimeout(() => setOpen(false), 150);
+    if (vpHandler.current) {
+      window.visualViewport?.removeEventListener('resize', vpHandler.current);
+      vpHandler.current = null;
+    }
   }
 
   return (
@@ -21,7 +33,7 @@ export default function AutocompleteInput({ value, onChange, suggestions = [], p
         value={value}
         onChange={e => { onChange(e.target.value); setOpen(true); }}
         onFocus={handleFocus}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onBlur={handleBlur}
         placeholder={placeholder}
         className={className}
         {...props}
