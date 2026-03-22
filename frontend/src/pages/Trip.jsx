@@ -73,6 +73,27 @@ export default function Trip() {
 
   const isEndMode = tripId !== null;
 
+  const startTimeRef = useRef(null);
+  const endTimeRef   = useRef(null);
+  const startTimeVpHandler = useRef(null);
+  const endTimeVpHandler   = useRef(null);
+
+  function makeTimeHandlers(elRef, vpRef) {
+    return {
+      onFocus() {
+        const scroll = () => elRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        vpRef.current = scroll;
+        window.visualViewport?.addEventListener('resize', scroll);
+      },
+      onBlur() {
+        if (vpRef.current) {
+          window.visualViewport?.removeEventListener('resize', vpRef.current);
+          vpRef.current = null;
+        }
+      },
+    };
+  }
+
   function toDateTimeLocal(d) {
     const pad = n => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -418,16 +439,18 @@ export default function Trip() {
           <div className="grid grid-cols-2 gap-3">
             {isEndMode ? (
               <>
-                <div>
+                <div ref={startTimeRef}>
                   <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
                   <input type="time" value={getTime(form.startTime)}
                     onChange={e => set('startTime')(form.startTime.slice(0,11) + e.target.value)}
+                    {...makeTimeHandlers(startTimeRef, startTimeVpHandler)}
                     className={`${fieldClass} text-sm`} />
                 </div>
-                <div>
+                <div ref={endTimeRef}>
                   <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
                   <input type="time" value={getTime(form.endTime)}
                     onChange={e => set('endTime')(form.endTime.slice(0,11) + e.target.value)}
+                    {...makeTimeHandlers(endTimeRef, endTimeVpHandler)}
                     className={`${fieldClass} text-sm`} />
                 </div>
               </>
