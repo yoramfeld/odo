@@ -24,37 +24,32 @@ function TripCard({ trip }) {
 
   const start = new Date(trip.start_time);
   const end   = trip.end_time ? new Date(trip.end_time) : null;
-  const date  = start.toLocaleDateString('he-IL');
   const dur   = fmtDuration(trip.start_time, trip.end_time);
 
-  const timeStr = end
-    ? `${hhmm(start)}→${hhmm(end)}${dur ? ` (${dur})` : ''}`
-    : hhmm(start);
-
-  const kmStr = trip.start_km_confirmed != null
-    ? `${trip.start_km_confirmed.toLocaleString()}→${trip.end_km_confirmed != null ? trip.end_km_confirmed.toLocaleString() : '?'}${trip.distance_km != null ? ` (${trip.distance_km} ק״מ)` : ''}`
-    : null;
-
-  const locStr = (trip.start_location || trip.end_location)
-    ? [trip.start_location, trip.end_location].filter(Boolean).join('→')
-    : null;
-
   return (
-    <div className="py-2.5 border-b border-slate-800 last:border-0 space-y-1">
-      {/* Row 1: plate · date · times · reason */}
-      <div className="flex items-baseline gap-2 min-w-0">
-        <span className="font-semibold text-white text-sm flex-shrink-0">{trip.plate}</span>
-        {trip.discrepancy_flag && <span className="text-amber-400 text-xs flex-shrink-0">⚠️</span>}
-        <span className="text-slate-500 text-xs flex-shrink-0">{date}</span>
-        <span className="text-slate-400 text-xs flex-shrink-0">{timeStr}</span>
-        <span className="text-slate-300 text-xs truncate min-w-0">{trip.reason}</span>
+    <div className="py-2.5 border-b border-slate-800 last:border-0 space-y-0.5">
+      {/* Row 1: plate + date */}
+      <div className="flex items-baseline gap-2">
+        <span className="font-semibold text-white text-sm">{trip.plate}</span>
+        {trip.discrepancy_flag && <span className="text-amber-400 text-xs">⚠️</span>}
+        <span className="text-slate-500 text-xs">{start.toLocaleDateString('he-IL')}</span>
+        <span className="text-slate-500 text-xs truncate">{trip.reason}</span>
       </div>
 
-      {/* Row 2: KM range · locations */}
-      <div className="flex items-baseline gap-3 text-xs min-w-0">
-        {kmStr && <span className="text-slate-400 flex-shrink-0">{kmStr}</span>}
-        {locStr && <span className="text-slate-500 truncate min-w-0">{locStr}</span>}
+      {/* Row 2: start time → end time (duration) */}
+      <div className="text-xs text-slate-400">
+        {hhmm(start)}{end ? ` → ${hhmm(end)}` : ''}
+        {dur && <span className="text-slate-500"> ({dur})</span>}
       </div>
+
+      {/* Row 3: start KM → end KM (distance) */}
+      {trip.start_km_confirmed != null && (
+        <div className="text-xs text-slate-400">
+          {trip.start_km_confirmed.toLocaleString()} ק״מ
+          {trip.end_km_confirmed != null && ` → ${trip.end_km_confirmed.toLocaleString()} ק״מ`}
+          {trip.distance_km != null && <span className="text-slate-500"> ({trip.distance_km} ק״מ)</span>}
+        </div>
+      )}
     </div>
   );
 }
