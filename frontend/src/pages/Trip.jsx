@@ -64,7 +64,6 @@ export default function Trip() {
   const [error, setError]     = useState('');
   const [anomaly, setAnomaly] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [endActive, setEndActive] = useState(false);
 
   const cameraRef = useRef();
   const canvasRef = useRef(null);
@@ -242,11 +241,6 @@ export default function Trip() {
     }
   }
 
-  function activateEndKm() {
-    setEndActive(true);
-    setTimeout(() => endKmRef.current?.focus(), 50);
-  }
-
   async function doStart() {
     setLoading(true);
     try {
@@ -327,7 +321,6 @@ export default function Trip() {
       if (!form.reason.trim())        { setError('אנא הזן סיבת נסיעה'); return; }
       await doStart();
     } else {
-      if (!endActive) { activateEndKm(); return; }
       if (!form.endKm)              { endKmRef.current?.focus(); setError('אנא הזן מד קילומטר סיום'); return; }
       if (!form.endLocation.trim()) { setError('אנא הזן מיקום סיום'); return; }
       if (!form.reason.trim())      { setError('אנא הזן סיבת נסיעה'); return; }
@@ -344,7 +337,7 @@ export default function Trip() {
     </div>
   );
 
-  const distance = isEndMode && endActive && form.endKm && parseInt(form.endKm) > parseInt(form.startKm)
+  const distance = isEndMode && form.endKm && parseInt(form.endKm) > parseInt(form.startKm)
     ? parseInt(form.endKm) - parseInt(form.startKm) : null;
 
   const fieldClass = "w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-blue-500";
@@ -536,17 +529,17 @@ export default function Trip() {
                   type="number" inputMode="numeric"
                   value={form.endKm}
                   onChange={e => set('endKm')(e.target.value)}
-                  disabled={!isEndMode || !endActive}
-                  placeholder={isEndMode && endActive ? 'הזן ק״מ…' : '—'}
+                  disabled={!isEndMode}
+                  placeholder={isEndMode ? 'הזן ק״מ…' : '—'}
                   className={`w-full border rounded-xl px-4 py-2 text-xl font-bold
                     focus:outline-none focus:border-blue-500
                     [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
                     [&::-webkit-inner-spin-button]:appearance-none
-                    ${isEndMode && endActive
+                    ${isEndMode
                       ? 'bg-slate-800 border-slate-700 text-white pl-10'
                       : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed pl-4'}`}
                 />
-                {isEndMode && endActive && (
+                {isEndMode && (
                   <button type="button" onClick={() => cameraRef.current.click()}
                     className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg leading-none">
                     {ocrLoading
@@ -602,13 +595,12 @@ export default function Trip() {
           {!anomaly && (
             <button type="submit" disabled={loading}
               className={`w-full font-bold rounded-2xl py-2 text-base transition-colors
-                ${isEndMode && endActive
+                ${isEndMode
                   ? 'bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white'
                   : 'bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white'}`}>
               {loading
                 ? (isEndMode ? 'שומר…' : 'מתחיל…')
-                : isEndMode && endActive ? 'אשר וסיים ✓'
-                : isEndMode ? 'סיים נסיעה ←'
+                : isEndMode ? 'אשר וסיים ✓'
                 : 'התחל נסיעה ←'}
             </button>
           )}
