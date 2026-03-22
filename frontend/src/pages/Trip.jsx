@@ -262,11 +262,12 @@ export default function Trip() {
         endLocation:      form.endLocation.trim() || undefined,
       });
       const car = cars.find(c => c.id === parseInt(carId));
+      const startDT = toDateTimeLocal(new Date(data.start_time));
       setTripId(data.id);
       setTripMeta({ plate: car?.plate, make: car?.make, model: car?.model });
-      set('endTime')(toDateTimeLocal(new Date()));
-      startKmOriginal.current   = null;
-      startTimeOriginal.current = null;
+      setForm(f => ({ ...f, startTime: startDT, endTime: toDateTimeLocal(new Date()) }));
+      startKmOriginal.current   = data.start_km_confirmed ?? null;
+      startTimeOriginal.current = startDT;
       // Reset OCR for end mode
       setOcrKm(null); setConf(null); setPreviewSrc(null); canvasRef.current = null;
     } catch (err) {
