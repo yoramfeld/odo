@@ -347,7 +347,7 @@ export default function Trip() {
   const distance = isEndMode && endActive && form.endKm && parseInt(form.endKm) > parseInt(form.startKm)
     ? parseInt(form.endKm) - parseInt(form.startKm) : null;
 
-  const fieldClass = "w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500";
+  const fieldClass = "w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-blue-500";
 
   function badgeClass(c) {
     return c === 'high' ? 'bg-green-950 text-green-400 border-green-800'
@@ -382,7 +382,7 @@ export default function Trip() {
                 <div className="text-slate-500 text-sm">טוען רכבים…</div>
               ) : (
                 <select value={carId} onChange={e => setCarId(e.target.value)} required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2
                              text-white text-base focus:outline-none focus:border-blue-500">
                   <option value="">בחר רכב…</option>
                   {cars.map(c => (
@@ -432,7 +432,7 @@ export default function Trip() {
             </label>
             <textarea value={form.notes} onChange={e => set('notes')(e.target.value)}
               rows={1} placeholder="הערות נוספות…"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2
                          text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
           </div>
 
@@ -461,14 +461,14 @@ export default function Trip() {
               <>
                 <div>
                   <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
-                  <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 text-sm">
+                  <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-slate-300 text-sm">
                     {(() => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; })()}
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
                   <input disabled placeholder="—"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2
                                text-slate-600 text-sm cursor-not-allowed" />
                 </div>
               </>
@@ -497,7 +497,7 @@ export default function Trip() {
                 <input type="number" inputMode="numeric" value={form.startKm}
                   onChange={e => isEndMode ? set('startKm')(e.target.value) : handleStartKmChange(e.target.value)}
                   required={!isEndMode}
-                  className={`w-full bg-slate-800 border border-slate-700 rounded-xl py-2.5 text-white text-xl font-bold
+                  className={`w-full bg-slate-800 border border-slate-700 rounded-xl py-2 text-white text-xl font-bold
                     focus:outline-none focus:border-blue-500
                     [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
                     [&::-webkit-inner-spin-button]:appearance-none
@@ -538,7 +538,7 @@ export default function Trip() {
                   onChange={e => set('endKm')(e.target.value)}
                   disabled={!isEndMode || !endActive}
                   placeholder={isEndMode && endActive ? 'הזן ק״מ…' : '—'}
-                  className={`w-full border rounded-xl px-4 py-2.5 text-xl font-bold
+                  className={`w-full border rounded-xl px-4 py-2 text-xl font-bold
                     focus:outline-none focus:border-blue-500
                     [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
                     [&::-webkit-inner-spin-button]:appearance-none
@@ -577,16 +577,16 @@ export default function Trip() {
         <div className="px-5 pb-6 pt-2 space-y-3">
 
           {anomaly && (
-            <div className="bg-amber-950 border border-amber-800 rounded-2xl px-4 py-2.5 space-y-3">
+            <div className="bg-amber-950 border border-amber-800 rounded-2xl px-4 py-2 space-y-3">
               <p className="text-amber-400 text-sm font-semibold">⚠️ {anomaly}</p>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setAnomaly(null)}
-                  className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2.5 text-sm">
+                  className="flex-1 bg-slate-700 text-slate-300 rounded-xl py-2 text-sm">
                   חזור לטופס
                 </button>
                 <button type="button" onClick={doEnd} disabled={loading}
                   className="flex-1 bg-amber-600 hover:bg-amber-500 disabled:opacity-40
-                             text-white font-semibold rounded-xl py-2.5 text-sm">
+                             text-white font-semibold rounded-xl py-2 text-sm">
                   {loading ? 'שומר…' : 'שמור בכל זאת'}
                 </button>
               </div>
@@ -594,14 +594,14 @@ export default function Trip() {
           )}
 
           {error && (
-            <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-2.5">
+            <div className="bg-red-950 border border-red-800 text-red-400 text-sm rounded-xl px-4 py-2">
               {error}
             </div>
           )}
 
           {!anomaly && (
             <button type="submit" disabled={loading}
-              className={`w-full font-bold rounded-2xl py-2.5 text-base transition-colors
+              className={`w-full font-bold rounded-2xl py-2 text-base transition-colors
                 ${isEndMode && endActive
                   ? 'bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white'
                   : 'bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white'}`}>
