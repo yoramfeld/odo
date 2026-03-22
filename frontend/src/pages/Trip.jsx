@@ -404,6 +404,40 @@ export default function Trip() {
                          text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
           </div>
 
+          {/* Row 3: Start Time | End Time */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
+              {isEndMode ? (
+                <input type="datetime-local" value={form.startTime}
+                  onChange={e => set('startTime')(e.target.value)}
+                  className={`${fieldClass} text-sm`} />
+              ) : (
+                <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
+                                text-slate-300 text-sm">
+                  {(() => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; })()}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
+              {isEndMode ? (
+                <input type="datetime-local" value={form.endTime}
+                  onChange={e => set('endTime')(e.target.value)}
+                  disabled={!endActive}
+                  className={`w-full border rounded-xl px-4 py-3 text-sm
+                    focus:outline-none focus:border-blue-500
+                    ${endActive
+                      ? 'bg-slate-800 border-slate-700 text-white'
+                      : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'}`} />
+              ) : (
+                <input disabled placeholder="—"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
+                             text-slate-600 text-sm cursor-not-allowed" />
+              )}
+            </div>
+          </div>
+
           {/* OCR preview */}
           {previewSrc && (
             <img src={previewSrc} alt="odometer"
@@ -411,7 +445,7 @@ export default function Trip() {
               style={{ maxHeight: '30dvh' }} />
           )}
 
-          {/* Row 3: Start KM | End KM */}
+          {/* Row 4: Start KM | End KM */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">
@@ -495,39 +529,6 @@ export default function Trip() {
             </div>
           </div>
 
-          {/* Row 4: Start Time | End Time */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת התחלה</label>
-              {isEndMode ? (
-                <input type="datetime-local" value={form.startTime}
-                  onChange={e => set('startTime')(e.target.value)}
-                  className={`${fieldClass} text-sm`} />
-              ) : (
-                <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
-                                text-slate-300 text-sm">
-                  {(() => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; })()}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-widest mb-1.5">שעת סיום</label>
-              {isEndMode ? (
-                <input type="datetime-local" value={form.endTime}
-                  onChange={e => set('endTime')(e.target.value)}
-                  disabled={!endActive}
-                  className={`w-full border rounded-xl px-4 py-3 text-sm
-                    focus:outline-none focus:border-blue-500
-                    ${endActive
-                      ? 'bg-slate-800 border-slate-700 text-white'
-                      : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'}`} />
-              ) : (
-                <input disabled placeholder="—"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3
-                             text-slate-600 text-sm cursor-not-allowed" />
-              )}
-            </div>
-          </div>
 
         </div>
 
